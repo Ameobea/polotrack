@@ -1,0 +1,25 @@
+[package]
+name = "polo-dashboard-backend"
+version = "0.1.0"
+authors = ["Casey Primozic <me@ameo.link>"]
+description = "Backend and API provider for the Poloniex portfolio analysis dashboard website"
+
+[dependencies]
+chrono = { version = "0.3.0",  features = ["serde"] }
+
+diesel = { version = "0.12.0", features = ["mysql", "large-tables", "chrono"] }
+diesel_codegen = { version = "0.12.0", features = ["mysql"] }
+
+hyper = "0.10.5"
+hyper-native-tls = "0.2.2"
+
+r2d2 = "0.7.1"
+r2d2-diesel-mysql = { git = "https://github.com/Ameobea/r2d2-diesel" }
+
+rocket = "0.2.4"
+rocket_codegen = "0.2.4"
+rocket_contrib = "0.2.4"
+
+serde = "0.9"
+serde_json = "0.9"
+serde_derive = "0.9"
