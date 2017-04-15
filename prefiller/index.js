@@ -148,7 +148,7 @@ function doDownload(pair, done) {
         // download the next chunk after waiting a few seconds as to avoid overloading their API
         setTimeout(() => {
           downloadChunk();
-        }, 2587);
+        }, 10254);
       } catch(err) {
         console.log(err);
       }
@@ -181,6 +181,14 @@ function fetchTradeHistory(pair, startTimestamp, endTimestamp) {
         if(body.error)
           reject(body.error);
         fulfill(body);
+      }).catch(err => {
+        // There was an error parsing the JSON for this segment; try to fetch it again.
+        console.log(`Error fetching segment; received error ${err}; fetching again in ~10 seconds...`);
+        setTimeout(() => {
+          fetchTradeHistory(pair, startTimestamp, endTimestamp).then(res => {
+            fulfill(res);
+          });
+        }, 10169);
       });
   });
 }
