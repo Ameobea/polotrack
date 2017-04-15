@@ -1,0 +1,20 @@
+{
+  "name": "prefiller",
+  "version": "1.0.0",
+  "description": "Prefills the database with data from the Poloniex API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ameobea/poloniex-dashboard/"
+  },
+  "dependencies": {
+    "lodash": "4.17.4",
+    "mysql": "2.13.0",
+    "node-fetch": "1.6.3"
+  },
+  "author": "Casey Primozic <me@ameo.link>",
+  "license": "UNLICENSED"
+}
