@@ -3,3 +3,4 @@ target/
 
 Cargo.lock
 schema.rs
+secret.rs

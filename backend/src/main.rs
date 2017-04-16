@@ -19,7 +19,21 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
+use diesel::mysql::MysqlConnection;
+use r2d2::{ Pool, PooledConnection };
+use r2d2_diesel_mysql::ConnectionManager;
+
 mod schema;
+mod secret;
+mod db_query;
+
+pub struct DbPool(Pool<ConnectionManager<MysqlConnection>>);
+
+impl DbPool {
+    pub fn get_conn(&self) -> PooledConnection<ConnectionManager<MysqlConnection>> {
+        return self.0.get().unwrap()
+    }
+}
 
 fn main() {
     // TODO

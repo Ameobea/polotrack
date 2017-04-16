@@ -41,7 +41,7 @@ function downloadCurrencies(currencies) {
     // create a database table for the data of this pair
     const query = `CREATE TABLE trades_${pair} (
       id INT PRIMARY KEY NOT NULL,
-      trade_time TIMESTAMP NOT NULL,
+      trade_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
       rate FLOAT NOT NULL
     );`;
     connection.query(query, (err, res, fields) => {
