@@ -1,17 +1,19 @@
 import dva from 'dva';
 import './index.css';
+import ReactDOM from 'react-dom';
 
-// 1. Initialize
+import { LocaleProvider } from 'antd';
+import enUS from 'antd/lib/locale-provider/en_US';
+
 const app = dva();
 
-// 2. Plugins
-// app.use({});
-
-// 3. Model
-// app.model(require('./models/example'));
-
-// 4. Router
 app.router(require('./router'));
 
-// 5. Start
-app.start('#root');
+const App = app.start();
+
+ReactDOM.render(
+  <LocaleProvider locale={enUS}>
+    <App />
+  </LocaleProvider>
+, document.getElementById('root')
+);

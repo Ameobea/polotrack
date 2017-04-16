@@ -1,0 +1,24 @@
+.application {
+  height: 100%;
+  text-align: center;
+  font-family: 'Muli', sans-serif;
+}
+
+.content {
+  margin-left: 50px;
+  margin-right: 50px;
+  padding-top: 15px;
+  background-color: #fff;
+  padding: 24px;
+  min-height: 280px;
+  text-align: left;
+  font-size: 11pt;
+}
+
+.header {
+  width: 100%;
+}
+
+.footer {
+  text-align: center;
+}
