@@ -10,7 +10,9 @@
     },
     "production": {
       "extraBabelPlugins": [
-        "transform-runtime"
+        "dva-hmr",
+        "transform-runtime",
+        ["import", { "libraryName": "antd", "style": true }]
       ]
     }
   }

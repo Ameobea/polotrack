@@ -9,6 +9,7 @@ import React from 'react';
 import { connect } from 'dva';
 
 import Welcome from '../components/Welcome';
+import PortfolioOverview from '../components/PortfolioOverview';
 
 class IndexPage extends React.Component {
   render() {
@@ -17,7 +18,7 @@ class IndexPage extends React.Component {
     } else {
       return (
         <div>
-          Data Uploaded successfully
+          <PortfolioOverview />
         </div>
       );
     }

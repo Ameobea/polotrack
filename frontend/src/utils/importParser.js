@@ -25,7 +25,7 @@ function parseFile(file, successCallback, errorCallback) {
  */
 function parseDepositsWithdrawls(raw, isDeposits) {
   // split the CSV by row and ignore the header row
-  const split = raw.split('\n').splice(1);
+  const split = _.filter(raw.split('\n').splice(1), elem => elem.length > 0);
 
   // make sure that we're parsing the right one
   if(split.length > 1 && split[1].split(',')[4].includes(":") == isDeposits)
@@ -48,7 +48,7 @@ function parseDepositsWithdrawls(raw, isDeposits) {
  */
 function parseTrades(raw) {
   // split the CSV by row and ignore the header row
-  const split = raw.split('\n').splice(1);
+  const split = _.filter(raw.split('\n').splice(1), elem => elem.length > 0);
 
   return _.map(split, row => {
     const data = row.split(',');
@@ -57,9 +57,9 @@ function parseTrades(raw) {
       date: new Date(data[0]),
       pair: data[1],
       buy: data[3] == 'Buy',
-      price: +data[4],
-      amount: +data[5],
-      cost: +data[6],
+      price: +data[4], // rate at which the trade occured
+      amount: +data[5], // total number of the currency gained or lost
+      cost: +data[6], // total amount of the base currency gained or lost
       fee: +data[7].substring(0, data[7].length - 1),
     };
   });
