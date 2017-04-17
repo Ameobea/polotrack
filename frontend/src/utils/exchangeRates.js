@@ -46,4 +46,17 @@ function getPoloRates() {
     });
 }
 
-export { getBtcUsdRate, listBaseCurrencies, getPoloRates };
+/**
+ * Gets the exchange rate for a currency in terms of BTC given the currency, the amount, and the exchange rates map.
+ */
+function getBtcValue(currency, amount, rates) {
+  if(currency == 'USDT') {
+    return amount * +rates['USDT_BTC'].last;
+  } else if(currency == 'BTC') {
+    return amount;
+  } else {
+    return amount * +rates[`BTC_${currency}`].last;
+  }
+}
+
+export { getBtcUsdRate, listBaseCurrencies, getPoloRates, getBtcValue };

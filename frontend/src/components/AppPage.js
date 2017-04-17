@@ -27,11 +27,11 @@ class IndexPage extends React.Component {
 
     // set up the periodic update of exchange rates from the blockchain.info API
     getBtcUsdRate(props.baseCurrency).then(rate => {
-      props.dispatch({type: 'globalData/baseBtcRateUpdated', rate: rate});
+      props.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
     });
     setInterval(() => {
       getBtcUsdRate(props.baseCurrency).then(rate => {
-        props.dispatch({type: 'globalData/baseBtcRateUpdated', rate: rate});
+        props.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
       });
     }, 16161);
 

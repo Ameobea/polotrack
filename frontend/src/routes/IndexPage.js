@@ -9,7 +9,7 @@ import React from 'react';
 import { connect } from 'dva';
 
 import Welcome from '../components/Welcome';
-import PortfolioOverview from '../components/PortfolioOverview';
+import PortfolioOverview from '../components/portfolio_overview/PortfolioOverview';
 
 class IndexPage extends React.Component {
   render() {

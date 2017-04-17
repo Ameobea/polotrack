@@ -7,7 +7,7 @@ export default {
   state: {
     baseCurrency: 'USD',
     baseCurrencySymbol: '$',
-    baseExchangeRate: 0,
+    baseExchangeRate: null,
     poloRates: {}, // the current exchange rates vs. BTC for all available currencies
   },
 
