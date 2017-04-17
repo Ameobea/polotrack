@@ -22,3 +22,27 @@
 .footer {
   text-align: center;
 }
+
+.bigText {
+  font-size: 13pt;
+}
+
+.bulletList {
+  list-style-type: circle;
+  margin-left: 20px;
+  padding-left: 4px;
+}
+
+.dropZone {
+  min-width: 200px;
+  min-height: 150px;
+  border-width: 2px;
+  border-color: rgb(102, 102, 102);
+  border-style: dashed;
+  border-radius: 5px;
+  width: 77%;
+  margin: auto;
+  cursor: pointer;
+  font-size: 14pt;
+}
+

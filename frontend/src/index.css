@@ -3,7 +3,8 @@ html, body, :global(#root) {
   background-color: #e2e9f1;
 }
 
-h1 {
+h1 h2 h3 h4 {
   margin-top: 0px;
   font-family: 'Patua One', cursive;
+  text-align: center;
 }

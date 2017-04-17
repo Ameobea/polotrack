@@ -1,5 +1,5 @@
 module.exports = {
-  mysqlUrl: "example.com",
+  mysqlHost: "example.com",
   mysqlUsername: "username",
   mysqlPassword: "password",
   mysqlDatabase: "database",
