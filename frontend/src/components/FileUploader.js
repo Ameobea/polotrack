@@ -62,7 +62,6 @@ class FileUploader extends React.Component {
     parseFile(files[0], content => {
       const parsed = parseDepositsWithdrawls(content, true);
       if(parsed){
-        if(parsed[0] == '')
         this.props.dispatch({type: 'userData/depositHistoryUploaded', deposits: parsed});
         this.setState({uploadError: null, depositsOk: true});
       } else {
@@ -75,7 +74,6 @@ class FileUploader extends React.Component {
     parseFile(files[0], content => {
       const parsed = parseDepositsWithdrawls(content, false);
       if(parsed){
-        console.log(this.props);
         this.props.dispatch({type: 'userData/withdrawlHistoryUploaded', withdrawls: parsed});
         this.setState({uploadError: null, withdrawlsOk: true});
       } else {
@@ -88,7 +86,6 @@ class FileUploader extends React.Component {
     parseFile(files[0], content => {
       const parsed = parseTrades(content);
       if(parsed){
-        console.log(this.props);
         this.props.dispatch({type: 'userData/tradeHistoryUploaded', trades: parsed});
         this.setState({uploadError: null, tradesOk: true});
       } else {

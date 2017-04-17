@@ -3,6 +3,7 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import { Link } from 'react-router'
+import Lockr from 'lockr';
 import { connect } from 'dva';
 const { Header, Content, Footer } = Layout;
 
@@ -11,9 +12,17 @@ import gstyles from '../static/css/global.css';
 class IndexPage extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      dataUploaded: false,
-    };
+
+    // check localStorage for existing user data
+    Lockr.prefix = 'userData';
+
+    const deposits = Lockr.get('deposits');
+    if(deposits) {
+      props.dispatch({type: 'userData/depositHistoryUploaded', deposits: JSON.parse(deposits)});
+      props.dispatch({type: 'userData/withdrawlHistoryUploaded', withdrawls: JSON.parse(Lockr.get('withdrawls'))});
+      props.dispatch({type: 'userData/tradeHistoryUploaded', trades: JSON.parse(Lockr.get('trades'))});
+      props.dispatch({type: 'userData/allDataUploaded'});
+    }
   }
 
   render() {
@@ -28,8 +37,8 @@ class IndexPage extends React.Component {
             className={gstyles.bigText}
           >
             <Menu.Item key="overview"><Link to='/index'>Overview</Link></Menu.Item>
-            <Menu.Item disabled={!this.state.dataUploaded} key="2">Portfolio Analysis</Menu.Item>
-            <Menu.Item disabled={!this.state.dataUploaded} key="3">Trade History</Menu.Item>
+            <Menu.Item disabled={!this.props.dataUploaded} key="2"><Link to='/portfolio'>Portfolio Analysis</Link></Menu.Item>
+            <Menu.Item disabled={!this.props.dataUploaded} key="3"><Link to='/trades'>Trade History</Link></Menu.Item>
           </Menu>
         </Header>
         <Content className={gstyles.content}>
@@ -48,4 +57,10 @@ class IndexPage extends React.Component {
   }
 }
 
-export default connect()(IndexPage);
+function mapProps(state) {
+  return {
+    dataUploaded: state.userData.dataUploaded,
+  };
+}
+
+export default connect(mapProps)(IndexPage);
