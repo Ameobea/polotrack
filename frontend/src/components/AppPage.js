@@ -36,7 +36,7 @@ class IndexPage extends React.Component {
           {this.props.children}
         </Content>
         <Footer className={gstyles.footer}>
-          PoloTrack created by Casey Primozic © 2017.    <a href='mailto:me@ameo.link'>Contact Me</a>
+          PoloTrack created by <a href='https://ameobea.me/' target='_blank'>Casey Primozic</a> © 2017.    <a href='mailto:me@ameo.link'>Contact Me</a>
           <br/>
           This site is not affiliated with Poloniex Inc.  It is an independant, unnoficial site provided as a free service.
           The full source code for this application can be found <a href='https://github.com/ameobea/polotrack'>on Github</a>.

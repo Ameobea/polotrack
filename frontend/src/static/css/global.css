@@ -46,3 +46,6 @@
   font-size: 14pt;
 }
 
+.dropZoneSuccess {
+  background-color: rgba(205, 255, 193, 0.58);
+}
