@@ -27,10 +27,30 @@
   font-size: 13pt;
 }
 
+.hugeText {
+  font-size: 16pt;
+}
+
 .bulletList {
   list-style-type: circle;
   margin-left: 20px;
   padding-left: 4px;
+}
+
+.greenMoney {
+  color: #11a511;
+}
+
+.redMoney {
+  color: #da1322;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.defaultCursor {
+  cursor: default;
 }
 
 .dropZone {
