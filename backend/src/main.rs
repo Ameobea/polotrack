@@ -4,9 +4,6 @@
 #![plugin(rocket_codegen)]
 
 extern crate chrono;
-#[macro_use]
-extern crate diesel_codegen;
-#[macro_use]
 extern crate diesel;
 extern crate hyper;
 extern crate hyper_native_tls;
@@ -19,22 +16,65 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
+use std::fmt::Debug;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::sync::{Arc, Mutex};
+
+use chrono::NaiveDateTime;
 use diesel::mysql::MysqlConnection;
 use r2d2::{ Pool, PooledConnection };
 use r2d2_diesel_mysql::ConnectionManager;
 
-mod schema;
+mod cors;
+// mod schema;
+mod routes;
 mod secret;
 mod db_query;
+
+pub const MYSQL_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
+
+/// Given a type that can be debug-formatted, returns a String that contains its debug-formatted version.
+pub fn debug<T>(x: T) -> String where T:Debug {
+    format!("{:?}", x)
+}
 
 pub struct DbPool(Pool<ConnectionManager<MysqlConnection>>);
 
 impl DbPool {
     pub fn get_conn(&self) -> PooledConnection<ConnectionManager<MysqlConnection>> {
-        return self.0.get().unwrap()
+        self.0.get().unwrap()
+    }
+}
+
+/// A structure to cache rates pulled from the database.  Since historical exchange rates don't change,
+/// we can safely cache the rates here to avoid extra database load.
+pub struct RateCache(Arc<Mutex<HashMap<(String, NaiveDateTime), Option<f32>>>>);
+
+impl RateCache {
+    fn new() -> RateCache {
+        RateCache(Arc::new(Mutex::new(HashMap::new())))
+    }
+
+    /// Inserts an exchange rate into the cache
+    fn set(&self, pair: String, rate: Option<f32>, timestamp: NaiveDateTime) {
+        self.0.lock().unwrap().insert((pair, timestamp), rate);
+    }
+
+    /// Attempts to retrieve a cached value from the inner `HashMap`
+    fn get(&self, pair: String, timestamp: NaiveDateTime) -> Option<Option<f32>> {
+        match self.0.lock().unwrap().entry((pair, timestamp)) {
+            Entry::Occupied(val) => Some(val.get().clone()),
+            _ => None,
+        }
     }
 }
 
 fn main() {
-    // TODO
+    // initialize the Rocket webserver
+    rocket::ignite()
+        .mount("/", routes![routes::get_hist_rate, routes::hist_rate_cors_preflight])
+        .manage(DbPool(db_query::create_db_pool()))
+        .manage(RateCache::new())
+        .launch();
 }

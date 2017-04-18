@@ -1,19 +1,15 @@
 //! Functions for interfacing with the database using Diesel
 
-use std::fmt::Debug;
-
 use chrono::NaiveDateTime;
 use diesel::expression::sql_literal;
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
-use r2d2::{ Config, Pool, PooledConnection };
+use r2d2::{ Config, Pool };
 use r2d2_diesel_mysql::ConnectionManager;
 
-use schema;
+// use schema;
 use secret::DB_CREDENTIALS;
-use super::DbPool;
-
-pub const MYSQL_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
+use super::{debug, MYSQL_DATE_FORMAT};
 
 /// All valid currencies that are accepted by the API and may, at one point, have been in someone's Poloniex account.
 const CURRENCIES: &[&'static str] = &[
@@ -42,38 +38,43 @@ pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {
     Pool::new(config, manager).expect("Failed to create pool.")
 }
 
-/// Given a type that can be debug-formatted, returns a String that contains its debug-formatted version.
-pub fn debug<T>(x: T) -> String where T:Debug {
-    format!("{:?}", x)
-}
+/// Given a pair and a timestamp, returns the exchange rate for that pair to BTC as close as possible to the provided timestamp.
+/// Expects a pair in the format "BTC/ETH".
+pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) -> Result<Option<f32>, String> {
+    let split = pair.split('/').collect::<Vec<&str>>();
+    if split.len() < 2 {
+        return Err(String::from("Invalid currency pair supplied!"))
+    }
 
-/// Given a currency and a timestamp, returns the exchange rate for that currency to BTC as close as possible to the provided timestamp.
-pub fn get_rate(currency: &str, timestamp: NaiveDateTime, pool: DbPool) -> Result<f32, String> {
-    if CURRENCIES.contains(&currency) {
-        let conn = &*pool.get_conn();
+    if CURRENCIES.contains(&split[0]) && CURRENCIES.contains(&split[1]) {
         // have to construct raw SQL here since Diesel doesn't deal well with dynamic queries and writing macros is horrible
         let formatted_timestamp = timestamp.format(MYSQL_DATE_FORMAT);
         // create a query to find the trade nearest to the supplied timestamp within one day on either side.  Will return no rows if there
-        // were no trades in the requested currency on one day on either side of the supplied timestamp.
+        // were no trades in the requested pair on one day on either side of the supplied timestamp.
         let query = format!(
-            "SELECT `rate` FROM `trades_BTC_{}` WHERE `trade_time` BETWEEN DATE_SUB('{}', INTERVAL 1 DAY) AND DATE_ADD('{}', INTERVAL 1 DAY)
-            ORDER BY abs(TIMESTAMPDIFF(SECOND, '{}', `trade_time`))", currency, formatted_timestamp, formatted_timestamp, formatted_timestamp);
+            "SELECT `rate` FROM `trades_{}_{}` WHERE `trade_time` BETWEEN DATE_SUB('{}', INTERVAL 1 DAY) AND DATE_ADD('{}', INTERVAL 1 DAY)
+            ORDER BY abs(TIMESTAMPDIFF(SECOND, '{}', `trade_time`))", split[0], split[1], formatted_timestamp, formatted_timestamp, formatted_timestamp);
         let select_statement = sql_literal::sql(&query);
         let res: Vec<f32> = select_statement
             .load::<f32>(conn)
             .map_err(debug)?;
         if res.len() > 0 {
-            Ok(res[0])
+            Ok(Some(res[0]))
         } else {
-            Err(String::from("No trades occured within 1 day before or after the supplied timestamp in the supplied currency!"))
+            Ok(None)
         }
     } else {
-        Err(String::from("No stored data for that currency!"))
+        Err(String::from("Invalid currency pair supplied."))
     }
 }
 
 #[test]
 fn test_hist_rate_retrieval() {
-    let pool = create_db_pool();
-    assert_eq!(get_rate("DOGE", NaiveDateTime::parse_from_str("2014-01-25 05:44:38", MYSQL_DATE_FORMAT).unwrap(), DbPool(pool.clone())), Ok(0.0000015));
+    use super::DbPool;
+
+    let pool = DbPool(create_db_pool());
+    assert_eq!(
+        get_rate("BTC_DOGE", NaiveDateTime::parse_from_str("2014-01-25 05:44:38", MYSQL_DATE_FORMAT).unwrap(), &*pool.get_conn()),
+        Ok(Some(0.0000015))
+    );
 }

@@ -59,7 +59,7 @@ class IndexPage extends React.Component {
             style={{ lineHeight: '64px' }}
             theme="dark"
           >
-            <Menu.Item key="overview"><Link to='/index'>Overview</Link></Menu.Item>
+            <Menu.Item key="1"><Link to='/index'>Overview</Link></Menu.Item>
             <Menu.Item disabled={!this.props.dataUploaded} key="2"><Link to='/portfolio'>Portfolio Analysis</Link></Menu.Item>
             <Menu.Item disabled={!this.props.dataUploaded} key="3"><Link to='/trades'>Trade History</Link></Menu.Item>
           </Menu>

@@ -51,7 +51,7 @@ function getPoloRates() {
  */
 function getBtcValue(currency, amount, rates) {
   if(currency == 'USDT') {
-    return amount * +rates['USDT_BTC'].last;
+    return amount * (1 / +rates['USDT_BTC'].last);
   } else if(currency == 'BTC') {
     return amount;
   } else {
