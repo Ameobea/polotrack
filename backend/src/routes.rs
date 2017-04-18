@@ -13,6 +13,7 @@ use cors::*;
 pub struct RateResponse {
     rate: Option<f32>,
     no_data: bool,
+    cached: bool,
 }
 
 /// Implement CORS for `OPTION` queries on the historical rate API
@@ -46,7 +47,8 @@ pub fn get_hist_rate(
         Some(rate) => {
             return CORS::any(Ok(JSON(RateResponse{
                 rate: rate,
-                no_data: rate.is_some(),
+                no_data: rate.is_none(),
+                cached: true,
             })))
         },
         None => (),
@@ -64,10 +66,12 @@ pub fn get_hist_rate(
         Ok(Some(rate)) => Ok(JSON(RateResponse{
             rate: Some(rate),
             no_data: false,
+            cached: false,
         })),
         Ok(None) => Ok(JSON(RateResponse{
             rate: None,
             no_data: true,
+            cached: false,
         })),
         Err(err) => Err(err),
     })

@@ -144,4 +144,112 @@ function calcCostBasises(trades) {
   });
 }
 
-export { calcCurrentHoldings, calcCostBasises };
+/**
+ * Given the current holdings and a date in the past, returns the portfolio value at that point in time.
+ * Returns a promise that fulfills with the results once the necessary requests have completed.
+ */
+function getHistPortfolioValue(curHoldings, date) {
+  // TODO
+}
+
+/**
+ * Reverts all changes to portfolio in reverse order, only keeping events that happened before the supplied date.
+ * If `onlyTrades` is true, then deposits and withdrawls will not be rolled back.
+ */
+function rollbackPortfolio(holdings, date, deposits, withdrawls, trades, onlyTrades) {
+  // utility function for removing elements from the collection so that the date is correct
+  function filterDates(collection) {
+    return _.filter(collection, elem => {
+      return elem.date > date;
+    });
+  }
+
+  if(!onlyTrades) {
+    _.each(filterDates(deposits), ({currency, amount}) => {
+      holdings[currency] -= amount;
+    });
+
+    _.each(filterDates(withdrawls), ({currency, amount}) => {
+      holdings[currency] += amount;
+    });
+  }
+
+  _.each(filterDates(trades), ({pair, buy, amount, cost}) => {
+    const neg = buy ? -1 : 1;
+    const split = pair.split('/');
+    holdings[split[0]] += neg * amount;
+    holdings[split[1]] += neg * cost;
+  });
+
+  return holdings;
+}
+
+/**
+ * Given a portfolio and historical rates, returns the value of the portfolio at those historical rates.  Value is returned
+ * in BTC.
+ */
+function calcHistPortfolioValue(holdings, histDate, histRates) {
+  let totalValue = 0;
+  _.each(Object.keys(holdings), currency => {
+    // filter the correct historical rate for this data point from the historical rates array
+    const histRateRes = _.filter(histRates, ({date, pair, rate}) => {
+      return date == histDate && pair.includes(currency);
+    });
+    if(histRateRes.length === 0) {
+      console.error(`Unable to look up historical rate for ${currency} at date ${histDate}`);
+    }
+    const histRate = histRateRes[0].rate;
+
+    totalValue += holdings[currency] * histRate;
+  });
+
+  return totalValue;
+}
+
+/**
+ * Calculates recent changes in portfolio value by calculating historical portfolio value at three different points and
+ * returning the results as an object.  Returns a promise that fulfills once the result is available.
+ */
+function calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue, onlyTrades) {
+  return new Promise((f, r) => {
+    // TODO: Handle onlyTrades
+    // round current date to nearest 1000 seconds so that we can cache requests better
+    const now = new Date(Math.floor(new Date().getTime() / 1e6) * 1e6);
+    // create a set of historical rate requests for the internal API
+    const histDates = [
+      now.getTime() - (1000 * 60 * 60), // 1 hour ago
+      Math.round(new Date().setDate(now.getDate() - 1) / 1e6) * 1e6, // 1 day ago
+      Math.round(new Date().setDate(now.getDate() - 7) / 1e6) * 1e6, // 1 week ago
+      Math.round(new Date().setDate(now.getDate() - 30) / 1e6) * 1e6, // 1 month ago
+    ];
+
+    const rateRequests = _.flatten(_.map(Object.keys(curHoldings), currency => {
+      return _.map(histDates, date => {
+        return {
+          pair: `BTC/${currency}`,
+          date: date,
+        };
+      });
+    }));
+
+    // make all the requests using the internal API
+    batchFetchRates(rateRequests).then(histRates => {
+      var rolledPortfolio = _.cloneDeep(curHoldings);
+
+      // roll back portfolio to all three historical levels and calculate value at those points
+      var i = -1;
+      f(_.map(histDates, date => {
+        // rollback the portfolio to the selected historical rate
+        rolledPortfolio = rollbackPortfolio(rolledPortfolio, date, deposits, withdrawls, trades);
+        // then calculate the historical value of the portfolio at that time using the fetched historical rates
+        i += 1;
+        return {
+          index: i,
+          value: calcHistPortfolioValue(rolledPortfolio, date, histRates),
+        };
+      }));
+    });
+  });
+}
+
+export { calcCurrentHoldings, calcCostBasises, calcRecentChanges };

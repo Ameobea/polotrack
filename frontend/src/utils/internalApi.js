@@ -13,9 +13,18 @@ const INTERNAL_API_URL = 'http://localhost:7878';
 function batchFetchRates(requests) {
   return Promise.all(_.map(requests, ({pair, date}) => {
     return new Promise((f, r) => {
-      fetch(`${INTERNAL_API_URL}/rate/${encodeURIComponent(pair)}/${encodeURIComponent(new Date(date).toISOString().substring(0, 19).replace('T', ' '))}`).then(res => {
+      if(pair == 'BTC/BTC')
+        return f({pair: pair, date: date, rate: 1});
+
+      const sqlDate = new Date(date).toISOString().substring(0, 19).replace('T', ' ');
+      fetch(`${INTERNAL_API_URL}/rate/${encodeURIComponent(pair)}/${encodeURIComponent(sqlDate)}`).then(res => {
         return res.json();
       }).then(body => {
+        if(body.no_data)
+          console.log(`No data for pair ${pair} at time ${sqlDate}`);
+        // if(!body.cached)
+        //   console.log(`Uncached: ${pair} at ${sqlDate}`);
+
         f({
           pair: pair,
           rate: body.rate,

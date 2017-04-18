@@ -11,6 +11,7 @@ import { getBtcValue } from '../../utils/exchangeRates';
 import { calcCurrentHoldings, calcCostBasises } from '../../utils/portfolioCalc';
 import CurrentHoldings from './CurrentHoldings';
 import PortfolioDistribution from './PortfolioDistribution';
+import RecentChanges from './RecentChanges';
 
 class PortfolioOverview extends React.Component {
   constructor(props) {
@@ -34,8 +35,8 @@ class PortfolioOverview extends React.Component {
       return <span>Loading...</span>;
 
     let portfolioValueString;
+    var portfolioValue = 0;
     if(Object.keys(rates).length > 0) {
-      let portfolioValue = 0;
       _.each(Object.keys(curHoldings), currency => {
         portfolioValue += getBtcValue(currency, curHoldings[currency], rates);
       });
@@ -47,7 +48,7 @@ class PortfolioOverview extends React.Component {
     return (
       <div>
         <Row>
-          <Col md={24} xs={24}>
+          <Col md={6} xs={12}>
             <center>
               <h1>Portfolio Value</h1>
               <div className={gstyles.hugeText}>
@@ -55,8 +56,19 @@ class PortfolioOverview extends React.Component {
               </div>
             </center>
           </Col>
-          <Col md={24} xs={24}>
-            <center><h1>Placeholder</h1></center>
+          <Col md={6} xs={12}>
+            <center>
+              <h1>Recent Changes</h1>
+              <RecentChanges curHoldings={curHoldings} curValue={portfolioValue} />
+            </center>
+          </Col>
+          <Col md={6} xs={12}>
+            <center>
+              <h1>Bitcoin Price</h1>
+              <div className={gstyles.hugeText}>
+                <b>{baseRate ? `${baseCurrencySymbol}${baseRate.toFixed(2)}` : 'Loading...'}</b>
+              </div>
+            </center>
           </Col>
         </Row>
 
