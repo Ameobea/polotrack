@@ -25,9 +25,11 @@ function batchFetchRates(requests) {
         // if(!body.cached)
         //   console.log(`Uncached: ${pair} at ${sqlDate}`);
 
+        if(pair.includes('USDT'))
+          console.log(body);
         f({
           pair: pair,
-          rate: body.rate,
+          rate: pair.includes('USDT') ? 1 / body.rate : body.rate,
           date: date,
         });
       }).catch(err => {

@@ -35,7 +35,13 @@ function downloadCurrencies(currencies) {
   var i = 0;
 
   function next() {
-    const pair = `BTC_${currencies[i]}`;
+    // have to make special considerations for USDT/BTC
+    let pair;
+    if(currencies[i] != 'USDT'){
+      pair = `BTC_${currencies[i]}`;
+    } else {
+      pair = `BTC_USDT`;
+    }
     console.log(`Starting download for pair ${pair}...`);
 
     // create a database table for the data of this pair
