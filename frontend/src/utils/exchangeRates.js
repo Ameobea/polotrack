@@ -69,6 +69,32 @@ function getCoinmarketcapRates() {
 }
 
 /**
+ * Pulls Poloniex candlestick data from their API, maps it to the form that TechanJS expects, and returns a Promise that
+ * yields the results once the process is complete.  Pair should be in a format like BTC_XMR and timestamps sould be
+ * Unix timestamps with second precision.
+ */
+function fetchPoloCandlestickData(pair, startTime, endTime, period) {
+  return new Promise((f, r) => {
+    fetch(`${POLO_API_URL}?command=returnChartData&currencyPair=${pair}&start=${startTime}&end=${endTime}&period=${period}`)
+      .then(res => res.json())
+      .then(body => {
+        let mapped = _.map(body, candle => {
+          return {
+            date: new Date(candle.date * 1000),
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            volume: candle.volume,
+          };
+        });
+
+        f(_.sortBy(mapped, 'date'));
+      });
+  });
+}
+
+/**
  * Gets the exchange rate for a currency in terms of BTC given the currency, the amount, and the exchange rates map.
  */
 function getBtcValue(currency, amount, poloRates, coinmarketcapRates) {
@@ -93,4 +119,4 @@ function getBtcValue(currency, amount, poloRates, coinmarketcapRates) {
   }
 }
 
-export { getBtcUsdRate, listBaseCurrencies, getPoloRates, getBtcValue, getCoinmarketcapRates };
+export { getBtcUsdRate, listBaseCurrencies, getPoloRates, getBtcValue, getCoinmarketcapRates, fetchPoloCandlestickData };

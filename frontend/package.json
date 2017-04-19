@@ -18,6 +18,7 @@
     "lodash": "4.17.4",
     "node-fetch": "1.6.3",
     "react": "^15.4.0",
+    "react-faux-dom": "3.1.0",
     "react-highcharts": "11.5.0",
     "react-dom": "^15.4.0",
     "react-dropzone": "3.12.4"

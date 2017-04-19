@@ -16,17 +16,28 @@ import RecentChanges from './RecentChanges';
 class PortfolioOverview extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      costBasises: null,
-    };
+
+    this.calcBasises = this.calcBasises.bind(this);
+
+    this.state = {costBasises: null};
+  }
+
+  componentDidMount() {
+    if(this.props.poloRates && this.props.cmcRates)
+      this.calcBasises(this.props);
   }
 
   componentWillReceiveProps(nextProps) {
-    let {trades, poloRates, cmcRates} = nextProps;
+    let {poloRates, cmcRates} = nextProps;
 
     if(!poloRates || !cmcRates)
       return;
 
+    this.calcBasises(nextProps);
+  }
+
+  calcBasises(props) {
+    let {trades, poloRates, cmcRates} = props;
     calcCostBasises(trades, poloRates, cmcRates).then(basises => {
       this.setState({costBasises: basises});
     });
