@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { connect } from 'dva';
-import { Table } from 'antd';
+import { Table, Switch } from 'antd';
 const _ = require('lodash');
 
 import gstyles from '../../static/css/global.css';
@@ -35,16 +35,30 @@ function formatOffset(i) {
 class RecentChanges extends React.Component {
   constructor(props) {
     super(props);
+
+    this.handleSwitch = this.handleSwitch.bind(this);
+    this.recalculateChanges = this.recalculateChanges.bind(this);
+
     this.state = {
       recentChanges: null,
+      includeDepsWithdrawls: true,
     };
   }
 
   componentWillReceiveProps() {
+    this.recalculateChanges(!this.state.includeDepsWithdrawls);
+  }
+
+  recalculateChanges(onlyTrades) {
     let {deposits, withdrawls, trades, curValue, curHoldings} = this.props;
-    calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue).then(res => {
+    calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue, onlyTrades).then(res => {
       this.setState({recentChanges: res});
     });
+  }
+
+  handleSwitch(status) {
+    this.setState({includeDepsWithdrawls: status});
+    this.recalculateChanges(!status);
   }
 
   render() {
@@ -71,13 +85,16 @@ class RecentChanges extends React.Component {
     });
 
     return (
-      <Table
-        columns={columns}
-        dataSource={tableData}
-        pagination={false}
-        showHeader={false}
-        size='small'
-      />
+      <div>
+        <p>Include deposits/withdrawls <Switch checked={this.state.includeDepsWithdrawls} onChange={this.handleSwitch} /></p>
+        <Table
+          columns={columns}
+          dataSource={tableData}
+          pagination={false}
+          showHeader={false}
+          size='small'
+        />
+      </div>
     );
   }
 }

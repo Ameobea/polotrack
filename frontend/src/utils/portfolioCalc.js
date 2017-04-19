@@ -160,7 +160,7 @@ function rollbackPortfolio(holdings, date, deposits, withdrawls, trades, onlyTra
   // utility function for removing elements from the collection so that the date is correct
   function filterDates(collection) {
     return _.filter(collection, elem => {
-      return elem.date > date;
+      return new Date(elem.date).getTime() > new Date(date).getTime();
     });
   }
 
@@ -174,11 +174,16 @@ function rollbackPortfolio(holdings, date, deposits, withdrawls, trades, onlyTra
     });
   }
 
-  _.each(filterDates(trades), ({pair, buy, amount, cost}) => {
+  _.each(filterDates(trades), ({pair, buy, fee, amount, cost}) => {
+    // console.log(`${buy ? 'BUY:' : 'SELL:'} ${amount} ${pair} for ${cost}`)
     const neg = buy ? -1 : 1;
     const split = pair.split('/');
+    // console.log(`${split} += ${neg * amount}; ${split[1]} += ${-neg * cost}`);
     holdings[split[0]] += neg * amount;
-    holdings[split[1]] += neg * cost;
+    holdings[split[1]] += -neg * cost;
+    const feedCurrency = buy ? split[0] : split[1];
+    const feedTotal = buy ? amount : cost;
+    holdings[feedCurrency] += ((fee / 100) * feedTotal);
   });
 
   return holdings;
@@ -198,7 +203,13 @@ function calcHistPortfolioValue(holdings, histDate, histRates) {
     if(histRateRes.length === 0) {
       console.error(`Unable to look up historical rate for ${currency} at date ${histDate}`);
     }
-    const histRate = histRateRes[0].rate;
+    let histRate;
+    if(currency == 'BTC'){ // Took like 3 hours of debugging to figure out we needed this >.>
+      histRate = 1;
+    } else {
+      histRate = histRateRes[0].rate;
+    }
+    // console.log(`${currency}: ${histRate}`);
 
     totalValue += holdings[currency] * histRate;
   });
@@ -234,13 +245,12 @@ function calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue, 
 
     // make all the requests using the internal API
     batchFetchRates(rateRequests).then(histRates => {
-      var rolledPortfolio = _.cloneDeep(curHoldings);
 
       // roll back portfolio to all three historical levels and calculate value at those points
       var i = -1;
       f(_.map(histDates, date => {
         // rollback the portfolio to the selected historical rate
-        rolledPortfolio = rollbackPortfolio(rolledPortfolio, date, deposits, withdrawls, trades);
+        let rolledPortfolio = rollbackPortfolio(_.cloneDeep(curHoldings), date, deposits, withdrawls, trades, onlyTrades);
         // then calculate the historical value of the portfolio at that time using the fetched historical rates
         i += 1;
         return {

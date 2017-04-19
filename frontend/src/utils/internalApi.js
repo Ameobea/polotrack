@@ -22,11 +22,7 @@ function batchFetchRates(requests) {
       }).then(body => {
         if(body.no_data)
           console.log(`No data for pair ${pair} at time ${sqlDate}`);
-        // if(!body.cached)
-        //   console.log(`Uncached: ${pair} at ${sqlDate}`);
 
-        if(pair.includes('USDT'))
-          console.log(body);
         f({
           pair: pair,
           rate: pair.includes('USDT') ? 1 / body.rate : body.rate,
