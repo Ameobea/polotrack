@@ -9,6 +9,7 @@ export default {
     baseCurrencySymbol: '$',
     baseExchangeRate: null,
     poloRates: {}, // the current exchange rates vs. BTC for all available currencies
+    coinmarketcapRates: null,
   },
 
   reducers: {
@@ -38,6 +39,15 @@ export default {
     poloRatesUpdate(state, {rates}) {
       return {...state,
         poloRates: rates,
+      };
+    },
+
+    /**
+     * Triggered when the coinmarketcap.com rates are recieved
+     */
+    coinmarketcapRatesReceived(state, {rates}) {
+      return {...state,
+        coinmarketcapRates: rates,
       };
     },
   },

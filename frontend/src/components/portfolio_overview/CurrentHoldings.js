@@ -55,13 +55,13 @@ class CurrentHoldings extends React.Component {
   }
 
   render() {
-    let {curHoldings, costBasises, rates, baseRate, baseCurrencySymbol} = this.props;
+    let {curHoldings, costBasises, poloRates, cmcRates, baseRate, baseCurrencySymbol} = this.props;
 
-    if(Object.keys(rates).length === 0 || !this.props.baseRate)
+    if(Object.keys(poloRates).length === 0 || !this.props.baseRate)
       return <div>Loading...</div>;
 
     const tableData = _.map(Object.keys(curHoldings), currency => {
-      let btcValue = getBtcValue(currency, curHoldings[currency], rates);
+      let btcValue = getBtcValue(currency, curHoldings[currency], poloRates, cmcRates);
       let costBasis = costBasises[currency];
       let formattedBasis;
       if(costBasis && costBasis.total > 0) {
@@ -90,7 +90,8 @@ function mapProps(state) {
     baseRate: state.globalData.baseExchangeRate,
     baseCurrency: state.globalData.baseCurrency,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
-    rates: state.globalData.poloRates,
+    poloRates: state.globalData.poloRates,
+    cmcRates: state.globalData.coinmarketcapRates,
   };
 }
 

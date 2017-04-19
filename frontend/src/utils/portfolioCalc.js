@@ -56,7 +56,7 @@ function calcCurrentHoldings(deposits, withdrawls, trades) {
  * Given a currency and the deposit/withdrawl/trade history for the account, determines the cost basis of the given currency for the account.
  * Returns a promise that yields the results after the necessary API requests and calculations have been completed.
  */
-function calcCostBasises(trades) {
+function calcCostBasises(trades, poloRates, cmcRates) {
   // keeps track of running totals and cost basises for all currencies
   const costBasises = {};
 
@@ -72,7 +72,7 @@ function calcCostBasises(trades) {
 
   // fetch the historical rates from the API for all pairs that need fetching and then calculate cost basis
   return new Promise((f, r) => {
-    batchFetchRates(needsFetch).then(queryResults => {
+    batchFetchRates(needsFetch, poloRates, cmcRates).then(queryResults => {
       _.each(_.sortBy(trades, 'date'), ({date, pair, buy, amount, cost, price}) => {
         const currencies = pair.split('/');
         let boughtCurrency, soldCurrency, boughtAmount, soldAmount;
@@ -221,7 +221,7 @@ function calcHistPortfolioValue(holdings, histDate, histRates) {
  * Calculates recent changes in portfolio value by calculating historical portfolio value at three different points and
  * returning the results as an object.  Returns a promise that fulfills once the result is available.
  */
-function calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue, onlyTrades) {
+function calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades) {
   return new Promise((f, r) => {
     // TODO: Handle onlyTrades
     // round current date to nearest 1000 seconds so that we can cache requests better
@@ -244,7 +244,7 @@ function calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue, 
     }));
 
     // make all the requests using the internal API
-    batchFetchRates(rateRequests).then(histRates => {
+    batchFetchRates(rateRequests, poloRates, cmcRates).then(histRates => {
 
       // roll back portfolio to all three historical levels and calculate value at those points
       var i = -1;

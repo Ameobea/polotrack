@@ -21,24 +21,29 @@ class PortfolioOverview extends React.Component {
     };
   }
 
-  componentWillReceiveProps() {
-    calcCostBasises(this.props.trades).then(basises => {
+  componentWillReceiveProps(nextProps) {
+    let {trades, poloRates, cmcRates} = nextProps;
+
+    if(!poloRates || !cmcRates)
+      return;
+
+    calcCostBasises(trades, poloRates, cmcRates).then(basises => {
       this.setState({costBasises: basises});
     });
   }
 
   render() {
-    const {deposits, withdrawls, trades, rates, baseRate, baseCurrencySymbol} = this.props;
+    const {deposits, withdrawls, trades, poloRates, cmcRates, baseRate, baseCurrencySymbol, coinmarketcapRates} = this.props;
     const curHoldings = calcCurrentHoldings(deposits, withdrawls, trades);
 
-    if(!this.state.costBasises)
+    if(!this.state.costBasises || !cmcRates)
       return <span>Loading...</span>;
 
     let portfolioValueString;
     var portfolioValue = 0;
-    if(Object.keys(rates).length > 0) {
+    if(Object.keys(poloRates).length > 0) {
       _.each(Object.keys(curHoldings), currency => {
-        portfolioValue += getBtcValue(currency, curHoldings[currency], rates);
+        portfolioValue += getBtcValue(currency, curHoldings[currency], poloRates, cmcRates);
       });
       portfolioValueString = `${baseCurrencySymbol}${(portfolioValue * baseRate).toFixed(2)}`;
     } else {
@@ -92,9 +97,10 @@ function mapProps(state) {
     deposits: state.userData.deposits,
     withdrawls: state.userData.withdrawls,
     trades: state.userData.trades,
-    rates: state.globalData.poloRates,
+    poloRates: state.globalData.poloRates,
     baseRate: state.globalData.baseExchangeRate,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
+    cmcRates: state.globalData.coinmarketcapRates,
   };
 }
 

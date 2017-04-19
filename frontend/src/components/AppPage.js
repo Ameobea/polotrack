@@ -8,7 +8,7 @@ import { connect } from 'dva';
 const { Header, Content, Footer } = Layout;
 
 import gstyles from '../static/css/global.css';
-import { getBtcUsdRate, getPoloRates } from '../utils/exchangeRates';
+import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
 
 class IndexPage extends React.Component {
   constructor(props) {
@@ -44,6 +44,15 @@ class IndexPage extends React.Component {
         props.dispatch({type: 'globalData/poloRatesUpdate', rates: rates});
       });
     }, 18462);
+
+    // fetch and process the coinmarketcap ticker once
+    getCoinmarketcapRates().then(rates => {
+      const parsedRates = {};
+      _.each(rates, rate => {
+        parsedRates[rate.symbol] = rate;
+      });
+      props.dispatch({type: 'globalData/coinmarketcapRatesReceived', rates: parsedRates});
+    });
 
     this.state = {};
   }

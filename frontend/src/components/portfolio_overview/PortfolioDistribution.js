@@ -11,7 +11,7 @@ import { getBtcValue } from '../../utils/exchangeRates';
 class PortfolioDistribution extends React.Component {
   constructor(props) {
     super(props);
-    const {curHoldings, rates, baseCurrencySymbol, baseRate} = props;
+    const {curHoldings, poloRates, cmcRates, baseCurrencySymbol, baseRate} = props;
 
     // construct a color scheme for the pie chart
     const getColor = chroma.scale('Spectral').domain([1, Object.keys(curHoldings).length]);
@@ -58,26 +58,26 @@ class PortfolioDistribution extends React.Component {
     return this.props.baseRate;
   }
 
-  getSeriesData(curHoldings, rates) {
+  getSeriesData(curHoldings, poloRates, cmcRates) {
     let i = 0;
     return _.map(Object.keys(curHoldings), currency => {
       i += 1;
 
       return {
         name: currency,
-        y: getBtcValue(currency, curHoldings[currency], rates),
+        y: getBtcValue(currency, curHoldings[currency], poloRates, cmcRates),
       }
     });
   }
 
   render() {
-    const {curHoldings, rates, baseCurrencySymbol, baseRate} = this.props;
+    const {curHoldings, poloRates, cmcRates, baseCurrencySymbol, baseRate} = this.props;
 
     // must have poloniex rates loaded before rendering
-    if(Object.keys(rates).length === 0 || baseRate === null)
+    if(Object.keys(poloRates).length === 0 || baseRate === null)
       return (<div>Loading...</div>);
 
-    this.chartConfig.series[0].data = this.getSeriesData(curHoldings, rates);
+    this.chartConfig.series[0].data = this.getSeriesData(curHoldings, poloRates, cmcRates);
 
     return (
       <Highchart config={this.chartConfig} isPureConfig />
@@ -87,7 +87,8 @@ class PortfolioDistribution extends React.Component {
 
 function mapProps(state) {
   return {
-    rates: state.globalData.poloRates,
+    poloRates: state.globalData.poloRates,
+    cmcRates: state.globalData.coinmarketcapRates,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
     baseRate: state.globalData.baseExchangeRate,
   };

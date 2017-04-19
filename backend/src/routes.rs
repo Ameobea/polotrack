@@ -68,11 +68,10 @@ pub fn get_hist_rate(
             no_data: false,
             cached: false,
         })),
-        Ok(None) => Ok(JSON(RateResponse{
+        Ok(None) | Err(_) => Ok(JSON(RateResponse{
             rate: None,
             no_data: true,
             cached: false,
         })),
-        Err(err) => Err(err),
     })
 }

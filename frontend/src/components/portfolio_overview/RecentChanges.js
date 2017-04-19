@@ -39,26 +39,31 @@ class RecentChanges extends React.Component {
     this.handleSwitch = this.handleSwitch.bind(this);
     this.recalculateChanges = this.recalculateChanges.bind(this);
 
+    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates} = props;
+    calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, false).then(res => {
+      this.setState({recentChanges: res});
+    });
+
     this.state = {
       recentChanges: null,
       includeDepsWithdrawls: true,
     };
   }
 
-  componentWillReceiveProps() {
-    this.recalculateChanges(!this.state.includeDepsWithdrawls);
+  componentWillReceiveProps(nextProps) {
+    this.recalculateChanges(nextProps, !this.state.includeDepsWithdrawls);
   }
 
-  recalculateChanges(onlyTrades) {
-    let {deposits, withdrawls, trades, curValue, curHoldings} = this.props;
-    calcRecentChanges(deposits, withdrawls, trades, curHoldings, curValue, onlyTrades).then(res => {
+  recalculateChanges(props, onlyTrades) {
+    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates} = props;
+    calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades).then(res => {
       this.setState({recentChanges: res});
     });
   }
 
   handleSwitch(status) {
-    this.setState({includeDepsWithdrawls: status});
-    this.recalculateChanges(!status);
+    this.setState({includeDepsWithdrawls: status, recentChanges: null});
+    this.recalculateChanges(this.props, !status);
   }
 
   render() {
@@ -106,6 +111,8 @@ function mapProps(state) {
     trades: state.userData.trades,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
     baseRate: state.globalData.baseExchangeRate,
+    poloRates: state.globalData.poloRates,
+    cmcRates: state.globalData.coinmarketcapRates,
   };
 }
 
