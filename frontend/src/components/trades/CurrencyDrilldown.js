@@ -12,12 +12,15 @@ import { fetchPoloCandlestickData } from '../../utils/exchangeRates';
  * Given candlestick data in the correct format, creates a faux dom element, renders the chart to it, and
  * returns it.
  */
-function renderChart(candleData) {
+function renderChart(candleData, baseWidth) {
   const chartElem = ReactFauxDOM.createElement('svg');
 
+  const windowHeight = window.innerHeight
+    || document.documentElement.clientHeight
+    || document.body.clientHeight;
   const margin = {top: 20, right: 20, bottom: 30, left: 50},
-    width = 1020 - margin.left - margin.right,
-    height = 450 - margin.top - margin.bottom;
+    width = baseWidth - margin.left - margin.right,
+    height = (.6 * windowHeight) - margin.top - margin.bottom;
   const x = techan.scale.financetime()
     .range([0, width]);
   const y = d3.scaleLinear()
@@ -66,8 +69,8 @@ class CurrencyDrilldown extends React.Component {
   constructor(props) {
     super(props);
 
+    this.getRef = this.getRef.bind(this);
     this.generateChart = this.generateChart.bind(this);
-    this.generateChart(props);
 
     this.state = {chartElem: null};
   }
@@ -77,23 +80,38 @@ class CurrencyDrilldown extends React.Component {
     this.generateChart(nextProps);
   }
 
+  componentDidMount() {
+    this.generateChart(this.props);
+  }
+
   generateChart(props) {
     let {pair, startTime, endTime, period} = props;
 
     fetchPoloCandlestickData(pair, startTime, endTime, period).then(data => {
-      this.setState({chartElem: renderChart(data)});
+      this.setState({chartElem: renderChart(data, this.container.offsetWidth)});
     }).catch(err => {
       console.log('Error while fetching candlestick data from Poloniex API: ');
       console.log(err);
     });
   }
 
+  getRef(container) {
+    this.container = container;
+  }
+
   render() {
+    let content;
     if(this.state.chartElem) {
-      return this.state.chartElem.toReact();
+      content = this.state.chartElem.toReact();
     } else {
-      return <span>Loading...</span>;
+      content = <span>Loading...</span>;
     }
+
+    return (
+      <div ref={this.getRef}>
+        {content}
+      </div>
+    );
   }
 }
 

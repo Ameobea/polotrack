@@ -83,7 +83,6 @@ class TradeHistory extends React.Component {
     const parsed = parseCurrencies(props.trades, this.props.currency);
     // calculate initial display parameters for the initial currency
     const displayParams = calcDisplayParams(props.trades, parsed.selectedCurrency);
-    console.log(displayParams);
 
     this.state = {...parsed, ...displayParams};
   }
@@ -96,21 +95,20 @@ class TradeHistory extends React.Component {
     const currencyOptions = _.map(this.state.currencies, currency => {
       return <Option key={currency} value={currency}>{currency}</Option>;
     });
-    console.log(this.state);
 
     return (
       <div>
         <Row>
           <Col md={12} xs={12}>
             <center>
-              <p>{'Currency  '}
+              <p>{'Currency  '}</p>
               <Select
                 defaultValue={this.state.currencies[0] || 'ETH'}
                 onChange={this.handleCurrencySelect}
                 style={{width: 120}}
               >
                 {currencyOptions}
-              </Select></p>
+              </Select>
             </center>
           </Col>
           <Col md={12} xs={12}>
