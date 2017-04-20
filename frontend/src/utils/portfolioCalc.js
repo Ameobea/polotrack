@@ -12,10 +12,6 @@ function calcCurrentHoldings(deposits, withdrawls, trades) {
   // iterate through all deposits, withdrawls, and trades and keep a running total for each currency
   const totals = {};
 
-  // console.log(deposits);
-  // console.log(withdrawls);
-  // console.log(trades);
-
   _.each(deposits, deposit => {
     if(!totals[deposit.currency])
       totals[deposit.currency] = 0;
@@ -186,7 +182,6 @@ function rollbackPortfolio(holdings, date, deposits, withdrawls, trades, onlyTra
  * in base currency calculated using the historical price in BTC.
  */
 function calcHistPortfolioValue(holdings, histDate, histRates, baseCurrency) {
-  console.log(histRates);
   let totalValue = 0;
   // find the historical base rate value
   const histBaseRateRes = _.filter(histRates, ({date, pair, rate}) => {
@@ -195,7 +190,6 @@ function calcHistPortfolioValue(holdings, histDate, histRates, baseCurrency) {
   if(histBaseRateRes.length === 0) {
     console.error(`Unable to look up historical base rate at date ${histDate}`);
   }
-  console.log(histBaseRateRes[0].rate);
 
   _.each(Object.keys(holdings), currency => {
     // filter the correct historical rate for this data point from the historical rates array

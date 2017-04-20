@@ -72,13 +72,13 @@ class RecentChanges extends React.Component {
     }
 
     const tableData = _.map(this.state.recentChanges, ({index, value}) => {
-      const content = (value > this.props.curValue) ? (
+      const content = (value / this.props.baseRate > this.props.curValue) ? (
         <span className={gstyles.redMoney}>
-          {`${this.props.baseCurrencySymbol}${(this.props.curValue - value).toFixed(2)}`}
+          {`${this.props.baseCurrencySymbol}${((this.props.curValue * this.props.baseRate) - value).toFixed(2)}`}
         </span>
       ) : (
         <span className={gstyles.greenMoney}>
-          {`${this.props.baseCurrencySymbol}${(this.props.curValue - value).toFixed(2)}`}
+          {`${this.props.baseCurrencySymbol}${((this.props.curValue * this.props.baseRate) - value).toFixed(2)}`}
         </span>
       );
 
