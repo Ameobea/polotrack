@@ -39,8 +39,8 @@ class RecentChanges extends React.Component {
     this.handleSwitch = this.handleSwitch.bind(this);
     this.recalculateChanges = this.recalculateChanges.bind(this);
 
-    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates} = props;
-    calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, false).then(res => {
+    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates, baseCurrency} = props;
+    calcRecentChanges(baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, false).then(res => {
       this.setState({recentChanges: res});
     });
 
@@ -55,8 +55,8 @@ class RecentChanges extends React.Component {
   }
 
   recalculateChanges(props, onlyTrades) {
-    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates} = props;
-    calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades).then(res => {
+    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates, baseCurrency} = props;
+    calcRecentChanges(baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades).then(res => {
       this.setState({recentChanges: res});
     });
   }
@@ -74,11 +74,11 @@ class RecentChanges extends React.Component {
     const tableData = _.map(this.state.recentChanges, ({index, value}) => {
       const content = (value > this.props.curValue) ? (
         <span className={gstyles.redMoney}>
-          {`${this.props.baseCurrencySymbol}${(this.props.baseRate * (this.props.curValue - value)).toFixed(2)}`}
+          {`${this.props.baseCurrencySymbol}${(this.props.curValue - value).toFixed(2)}`}
         </span>
       ) : (
         <span className={gstyles.greenMoney}>
-          {`${this.props.baseCurrencySymbol}${(this.props.baseRate * (this.props.curValue - value)).toFixed(2)}`}
+          {`${this.props.baseCurrencySymbol}${(this.props.curValue - value).toFixed(2)}`}
         </span>
       );
 
@@ -109,6 +109,7 @@ function mapProps(state) {
     deposits: state.userData.deposits,
     withdrawls: state.userData.withdrawls,
     trades: state.userData.trades,
+    baseCurrency: state.globalData.baseCurrency,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
     baseRate: state.globalData.baseExchangeRate,
     poloRates: state.globalData.poloRates,

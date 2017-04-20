@@ -29,7 +29,7 @@ const CURRENCIES: &[&'static str] = &[
     "SWARM","SXC","SYNC","SYS","TAC","TOR","TRUST","TWE","UIS","ULTC","UNITY","URO","USDE","USDT","UTC","UTIL","UVC",
     "VIA","VOOT","VOX","VRC","VTC","WC","WDC","WIKI","WOLF","X13","XAI","XAP","XBC","XC","XCH","XCN","XCP","XCR","XDN",
     "XDP","XEM","XHC","XLB","XMG","XMR","XPB","XPM","XRP","XSI","XST","XSV","XUSD","XVC","XXC","YACC","YANG","YC","YIN",
-    "ZEC"
+    "ZEC", "USD", "EUR", "JPY", "GBP", "CAD", "NZD", "NOK"
 ];
 
 pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {

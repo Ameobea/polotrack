@@ -53,7 +53,8 @@ function calcCurrentHoldings(deposits, withdrawls, trades) {
 }
 
 /**
- * Given a currency and the deposit/withdrawl/trade history for the account, determines the cost basis of the given currency for the account.
+ * Given a currency and the deposit/withdrawl/trade history for the account,
+ * determines the cost basis of the given currency for the account.
  * Returns a promise that yields the results after the necessary API requests and calculations have been completed.
  */
 function calcCostBasises(trades, poloRates, cmcRates) {
@@ -92,7 +93,8 @@ function calcCostBasises(trades, poloRates, cmcRates) {
         let rate;
         if(!pair.includes('BTC')) {
           // console.log(`Calculating trade with pair ${pair} with rate ${price}`);
-          // traded pair is something like XMR/ETH; find the result of the request to get the exchange rate for BTC/XMR at the current date
+          // traded pair is something like XMR/ETH; find the result of the request to get
+          // the exchange rate for BTC/XMR at the current date
           // rate is how many currency 2 it takes to buy one currency 1
           const secondaryRate = _.filter(queryResults, res => {
             return date == res.date && res.pair == `BTC/${currencies[0]}`;
@@ -117,8 +119,6 @@ function calcCostBasises(trades, poloRates, cmcRates) {
 
           // the percentage of the new total holdings that this purchase makes up
           let newRatio = (boughtAmount / (costBasises[boughtCurrency].total + boughtAmount));
-          // if(boughtCurrency == 'ETH' || soldCurrency == 'ETH')
-          //   console.log(`amount: ${boughtAmount}, total: ${costBasises[boughtCurrency].total}, rate: ${rate}, old average: ${newRatio}`);
           if(Number.isNaN(newRatio))
             newRatio = 1;
           costBasises[boughtCurrency].basis = ((1-newRatio) * costBasises[boughtCurrency].basis) + (newRatio * rate);
@@ -142,14 +142,6 @@ function calcCostBasises(trades, poloRates, cmcRates) {
       console.log('Error while fetching historical exchange rates while during cost basis calculation');
     });
   });
-}
-
-/**
- * Given the current holdings and a date in the past, returns the portfolio value at that point in time.
- * Returns a promise that fulfills with the results once the necessary requests have completed.
- */
-function getHistPortfolioValue(curHoldings, date) {
-  // TODO
 }
 
 /**
@@ -191,10 +183,20 @@ function rollbackPortfolio(holdings, date, deposits, withdrawls, trades, onlyTra
 
 /**
  * Given a portfolio and historical rates, returns the value of the portfolio at those historical rates.  Value is returned
- * in BTC.
+ * in base currency calculated using the historical price in BTC.
  */
-function calcHistPortfolioValue(holdings, histDate, histRates) {
+function calcHistPortfolioValue(holdings, histDate, histRates, baseCurrency) {
+  console.log(histRates);
   let totalValue = 0;
+  // find the historical base rate value
+  const histBaseRateRes = _.filter(histRates, ({date, pair, rate}) => {
+    return date == histDate && pair == `BTC/${baseCurrency}`;
+  });
+  if(histBaseRateRes.length === 0) {
+    console.error(`Unable to look up historical base rate at date ${histDate}`);
+  }
+  console.log(histBaseRateRes[0].rate);
+
   _.each(Object.keys(holdings), currency => {
     // filter the correct historical rate for this data point from the historical rates array
     const histRateRes = _.filter(histRates, ({date, pair, rate}) => {
@@ -203,15 +205,15 @@ function calcHistPortfolioValue(holdings, histDate, histRates) {
     if(histRateRes.length === 0) {
       console.error(`Unable to look up historical rate for ${currency} at date ${histDate}`);
     }
+
     let histRate;
     if(currency == 'BTC'){ // Took like 3 hours of debugging to figure out we needed this >.>
       histRate = 1;
     } else {
       histRate = histRateRes[0].rate;
     }
-    // console.log(`${currency}: ${histRate}`);
 
-    totalValue += holdings[currency] * histRate;
+    totalValue += holdings[currency] * histRate * histBaseRateRes[0].rate;
   });
 
   return totalValue;
@@ -221,9 +223,10 @@ function calcHistPortfolioValue(holdings, histDate, histRates) {
  * Calculates recent changes in portfolio value by calculating historical portfolio value at three different points and
  * returning the results as an object.  Returns a promise that fulfills once the result is available.
  */
-function calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades) {
+function calcRecentChanges(
+  baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades
+) {
   return new Promise((f, r) => {
-    // TODO: Handle onlyTrades
     // round current date to nearest 1000 seconds so that we can cache requests better
     const now = new Date(Math.floor(new Date().getTime() / 1e6) * 1e6);
     // create a set of historical rate requests for the internal API
@@ -235,27 +238,33 @@ function calcRecentChanges(deposits, withdrawls, trades, curHoldings, poloRates,
     ];
 
     const rateRequests = _.flatten(_.map(Object.keys(curHoldings), currency => {
-      return _.map(histDates, date => {
+      return _.map(histDates, timestamp => {
         return {
           pair: `BTC/${currency}`,
-          date: date,
+          date: timestamp,
         };
       });
     }));
+    // also need historical BTC/base exchange rate
+    _.each(histDates, timestamp => {
+      rateRequests.push({pair: `BTC/${baseCurrency}`, date: timestamp});
+    });
 
     // make all the requests using the internal API
     batchFetchRates(rateRequests, poloRates, cmcRates).then(histRates => {
 
       // roll back portfolio to all three historical levels and calculate value at those points
       var i = -1;
-      f(_.map(histDates, date => {
+      f(_.map(histDates, timestamp => {
         // rollback the portfolio to the selected historical rate
-        let rolledPortfolio = rollbackPortfolio(_.cloneDeep(curHoldings), date, deposits, withdrawls, trades, onlyTrades);
+        let rolledPortfolio = rollbackPortfolio(
+          _.cloneDeep(curHoldings), timestamp, deposits, withdrawls, trades, onlyTrades
+        );
         // then calculate the historical value of the portfolio at that time using the fetched historical rates
         i += 1;
         return {
           index: i,
-          value: calcHistPortfolioValue(rolledPortfolio, date, histRates),
+          value: calcHistPortfolioValue(rolledPortfolio, timestamp, histRates, baseCurrency),
         };
       }));
     });
