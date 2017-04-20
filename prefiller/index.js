@@ -1,5 +1,6 @@
 //! Entry point for the prefiller application.  Fill in the config values in `conf.js` using `conf.sample.js`
 //! as an example before running.  See README.md for additional information.
+/* eslint-env node */
 
 const fetch = require('node-fetch');
 const mysql = require('mysql');
@@ -7,7 +8,6 @@ const _ = require('lodash');
 
 const priv = require('./conf');
 
-const SECONDS_IN_AN_HOUR = 3600;
 const SECONDS_IN_A_YEAR = 31556926;
 
 const connection = mysql.createConnection({
@@ -21,11 +21,55 @@ connection.connect();
 // fetch the Currencies page from the Poloniex API and parse it from JSON
 fetch('https://poloniex.com/public?command=returnCurrencies')
   .then(res => {
-    return res.json()
+    return res.json();
   }).then(body => {
     // just use the list of all currencies so that we can download their BTC exchange history
     downloadCurrencies(Object.keys(body));
   });
+
+// fetch historical BTC prices and insert them into the database
+const baseCurrencies = ['USD', 'EUR', 'JPY', 'GBP', 'CAD', 'NZD', 'NOK'];
+_.each(baseCurrencies, (currency, index) => {
+  // create the table if it doesn't exist and set up indexes
+  const tableQuery = `CREATE TABLE trades_BTC_${currency} (
+    trade_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    rate FLOAT NOT NULL
+  );`;
+  connection.query(tableQuery, (err, res, fields) => {
+    if(!err) {
+      const query2 = `CREATE INDEX trade_timestamp ON trades_BTC_${currency} (trade_time);`;
+      connection.query(query2, (err, res, fields) => {
+        const query3 = `ALTER TABLE \`trades_BTC_${currency}\` ADD UNIQUE(\`trade_time\`);`;
+        connection.query(query3);
+      });
+    }
+  });
+
+  setTimeout(() => {
+    _.each(['all', 'hour'], period => {
+      console.log(`Downloading BTC_${currency} data from coinbase with period ${period}...`);
+      fetch(`https://api.coinbase.com/v2/prices/BTC-${currency}/historic?period=${period}`)
+        .then(res => res.json())
+        .then(body => {
+          let query = `INSERT IGNORE INTO trades_BTC_${currency} (trade_time, rate) VALUES `;
+          query += _.map(body.data.prices, ({price, time}) => {
+            return `('${new Date(time).toISOString().substring(0, 19).replace('T', ' ')}', ${+price})`;
+          }).join(', ');
+          query += ';';
+
+          connection.query(query, (err, res, fields) => {
+            if(err) {
+              console.log('Error while inserting historical BTC exchange rates into table:');
+              console.log(err);
+            }
+          });
+        }).catch(err => {
+          console.log('Error while parsing response from Coinbase API out of JSON: ');
+          console.log(err);
+        });
+    });
+  }, (1 + index) * 1300);
+});
 
 /**
  * Loops through all currencies listed on the Currencies endpoint and downloads their trade history one block at a time,
@@ -40,7 +84,7 @@ function downloadCurrencies(currencies) {
     if(currencies[i] != 'USDT'){
       pair = `BTC_${currencies[i]}`;
     } else {
-      pair = `BTC_USDT`;
+      pair = 'BTC_USDT';
     }
     console.log(`Starting download for pair ${pair}...`);
 
@@ -52,9 +96,9 @@ function downloadCurrencies(currencies) {
     );`;
     connection.query(query, (err, res, fields) => {
       if(!err) {
-        const query2 = `CREATE INDEX trade_timestamp ON trades_${pair} (trade_time);`
+        const query2 = `CREATE INDEX trade_timestamp ON trades_${pair} (trade_time);`;
         connection.query(query2, (err, res, fields) => {
-          const query3 = `ALTER TABLE \`trades_${pair}\` ADD UNIQUE(\`trade_time\`);`
+          const query3 = `ALTER TABLE \`trades_${pair}\` ADD UNIQUE(\`trade_time\`);`;
           connection.query(query3);
         });
       }
@@ -65,8 +109,12 @@ function downloadCurrencies(currencies) {
 
   function done() {
     i += 1;
-    if(i < currencies.length)
+    if(i < currencies.length) {
       next();
+    } else {
+      console.log('Successfully finished downloading all data.');
+      process.exit(0);
+    }
   }
 
   next();
@@ -133,7 +181,7 @@ function doDownload(pair, done) {
           if(data.length > 0) {
             let query = `INSERT IGNORE INTO trades_${pair} (id, trade_time, rate) VALUES `;
             query += _.map(data, trade => {
-              let timestamp = new Date(trade.date + " GMT").toISOString().slice(0, 19).replace('T', ' ');
+              let timestamp = new Date(trade.date + ' GMT').toISOString().slice(0, 19).replace('T', ' ');
               // insert the trade into the database
               return `(${trade.globalTradeID}, "${timestamp}", ${+trade.rate})`;
             }).join(', ');
@@ -148,7 +196,7 @@ function doDownload(pair, done) {
 
           if(data.length === 50000) {
             // if it was more than 50,000 trades, download what's missing before going on
-            curEndTimestamp = Math.round(new Date(sortedData[0].date + " GMT").getTime() / 1000) - 1;
+            curEndTimestamp = Math.round(new Date(sortedData[0].date + ' GMT').getTime() / 1000) - 1;
             // if this is the first attempt to download an oversized segment, update `maxEndTimestamp`
             if(!areBacktracking){
               console.log('We weren\'t backtracking but now are due to hitting a max-sized result');
@@ -189,7 +237,7 @@ function doDownload(pair, done) {
         }
       }).catch(error => {
         // if no data is available for the pair, ignore it and move on.
-        if(error == "Invalid currency pair.")
+        if(error == 'Invalid currency pair.')
           done();
       });
     }
