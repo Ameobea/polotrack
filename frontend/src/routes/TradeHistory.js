@@ -10,7 +10,7 @@ import CurrencyDrilldown from '../components/trades/CurrencyDrilldown';
 
 /// Helper function to create a list of currencies and pick an initial currency to display a chart for
 function parseCurrencies(trades) {
-  const currencies = ['ETH'];
+  let currencies = ['ETH'];
   _.each(trades, ({pair}) => {
     _.each(pair.split('/'), currency => {
       if(!_.includes(currencies, currency)) {
@@ -18,6 +18,7 @@ function parseCurrencies(trades) {
       }
     });
   });
+  currencies = _.filter(currencies.sort(), currency => currency != 'BTC');
 
   return {
     currencies: currencies,
@@ -49,9 +50,13 @@ function calcDisplayParams(trades, currency) {
   // calculate the start and end times, giving 5% of the total time span before and after the first and last trades
   let endTime = new Date(_.last(mappedTrades).date).getTime() / 1000;
   let startTime = new Date(mappedTrades[0].date).getTime() / 1000;
+  if(startTime === endTime) {
+    endTime = new Date().getTime() / 1000;
+  }
   const timeSpan = endTime - startTime;
-  startTime = startTime - (.05 * timeSpan);
   endTime = endTime + (.05 * timeSpan);
+  startTime = startTime - (.05 * timeSpan);
+
 
   // calculate the period to request for the chart from the list of accepted periods by Poloniex
   // aim for as close to 250 bars as possible
@@ -88,7 +93,7 @@ class TradeHistory extends React.Component {
   }
 
   handleCurrencySelect(newCurrency) {
-    this.setState({selectedCurrency: newCurrency});
+    this.setState({selectedCurrency: newCurrency, ...calcDisplayParams(this.props.trades, newCurrency)});
   }
 
   render() {
@@ -122,6 +127,8 @@ class TradeHistory extends React.Component {
           startTime={this.state.startTime}
           endTime={this.state.endTime}
           period={this.state.period}
+          filteredTrades={this.state.filteredTrades}
+          currency={this.state.selectedCurrency}
         />
       </div>
     );

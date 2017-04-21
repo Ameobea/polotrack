@@ -12,8 +12,25 @@ import { fetchPoloCandlestickData } from '../../utils/exchangeRates';
  * Given candlestick data in the correct format, creates a faux dom element, renders the chart to it, and
  * returns it.
  */
-function renderChart(candleData, baseWidth) {
+function renderChart(candleData, baseWidth, filteredTrades, currency) {
+  candleData = candleData.splice(1);
   const chartElem = ReactFauxDOM.createElement('svg');
+
+  // map the trades to the format expected by TechanJS
+  const techanTrades = _.map(filteredTrades, ({pair, date, buy, price, amount}) => {
+    const currencies = pair.split('/');
+    const realBuy = !((currencies[0] == currency) ^ buy)
+    return {
+      date: new Date(date),
+      type: realBuy ? 'buy' : 'sell',
+      price: price,
+      quantity: amount,
+    };
+  });
+
+  var dateFormat = d3.timeFormat("%d-%b-%y"),
+  parseDate = d3.timeParse("%d-%b-%y"),
+  valueFormat = d3.format(',.2f');
 
   const windowHeight = window.innerHeight
     || document.documentElement.clientHeight
@@ -28,6 +45,12 @@ function renderChart(candleData, baseWidth) {
   const candlestick = techan.plot.candlestick()
     .xScale(x)
     .yScale(y);
+  const tradearrow = techan.plot.tradearrow()
+    .xScale(x)
+    .yScale(y)
+    .orient(function(d) { return d.type.startsWith('buy') ? 'up' : 'down'; })
+    .on('mouseenter', enter)
+    .on('mouseout', out);
   const xAxis = d3.axisBottom()
     .scale(x);
   const yAxis = d3.axisLeft()
@@ -43,8 +66,30 @@ function renderChart(candleData, baseWidth) {
     .attr('class', 'candlestick');
 
   svg.append('g')
+    .attr('class', 'tradearrow');
+
+  svg.append('g')
     .attr('class', 'x axis')
     .attr('transform', 'translate(0,' + height + ')');
+
+  var valueText = svg.append('text')
+    .style('text-anchor', 'end')
+    .attr('class', 'coords')
+    .attr('x', width + 25)
+    .attr('y', 15);
+
+  function refreshText(d) {
+    valueText.text('Trade: ' + dateFormat(d.date) + ', ' + d.type + ', ' + valueFormat(d.price));
+  }
+
+  function enter(d) {
+    valueText.style('display', 'inline');
+    refreshText(d);
+  }
+
+  function out() {
+    valueText.style('display', 'none');
+  }
 
   svg.append('g')
     .attr('class', 'y axis')
@@ -59,6 +104,7 @@ function renderChart(candleData, baseWidth) {
   y.domain(techan.scale.plot.ohlc(candleData, candlestick.accessor()).domain());
 
   svg.selectAll('g.candlestick').datum(candleData).call(candlestick);
+  svg.selectAll('g.tradearrow').datum(techanTrades).call(tradearrow);
   svg.selectAll('g.x.axis').call(xAxis);
   svg.selectAll('g.y.axis').call(yAxis);
 
@@ -88,7 +134,7 @@ class CurrencyDrilldown extends React.Component {
     let {pair, startTime, endTime, period} = props;
 
     fetchPoloCandlestickData(pair, startTime, endTime, period).then(data => {
-      this.setState({chartElem: renderChart(data, this.container.offsetWidth)});
+      this.setState({chartElem: renderChart(data, this.container.offsetWidth, this.props.filteredTrades, this.props.currency)});
     }).catch(err => {
       console.log('Error while fetching candlestick data from Poloniex API: ');
       console.log(err);
