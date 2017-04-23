@@ -30,10 +30,10 @@ function parseCurrencies(trades) {
 /// Helper function that, given a currency and trade history, determines the time range and period for the chart
 /// as well as combines all trades that took place on the same second together.
 function calcDisplayParams(trades, currency) {
-  const filteredTrades = _.filter(
-    _.sortBy(trades, trade => new Date(trade.date).getTime()),
+  const filteredTrades = _.cloneDeep(_.filter(
+    _.sortBy(trades, ({date}) => new Date(date).getTime()),
     trade => trade.pair.includes(currency)
-  );
+  ));
 
   // calculate the start and end times, giving 5% of the total time span before and after the first and last trades
   let endTime = new Date(_.last(filteredTrades).date).getTime() / 1000;
@@ -175,6 +175,7 @@ class TradeHistory extends React.Component {
       return <Option key={currency} value={currency}>{currency}</Option>;
     });
 
+    console.log(this.state.hoveredTrade);
     const tradeDetail = this.state.hoveredTrade ? (
       <table>
         <tbody>
@@ -188,11 +189,11 @@ class TradeHistory extends React.Component {
           </tr>
           <tr>
             <td>Rate</td>
-            <td>{this.state.hoveredTrade.price.toFixed(8)}</td>
+            <td>{this.state.hoveredTrade.price.toFixed(8)} ETH/BTC</td>
           </tr>
           <tr>
             <td>Amount</td>
-            <td>{this.state.hoveredTrade.quantity.toFixed(8)}</td>
+            <td>{`${this.state.hoveredTrade.quantity.toFixed(8)} ${this.state.hoveredTrade.pair.split('/')[0]}`}</td>
           </tr>
           <tr>
             <td colSpan='2'>

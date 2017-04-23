@@ -12,11 +12,11 @@ function calcCurrentHoldings(deposits, withdrawls, trades) {
   // iterate through all deposits, withdrawls, and trades and keep a running total for each currency
   const totals = {};
 
-  _.each(deposits, deposit => {
-    if(!totals[deposit.currency])
-      totals[deposit.currency] = 0;
+  _.each(deposits, ({currency, amount}) => {
+    if(!totals[currency])
+      totals[currency] = 0;
 
-    totals[deposit.currency] += deposit.amount;
+    totals[currency] += amount;
   });
 
   _.each(withdrawls, withdrawl => {

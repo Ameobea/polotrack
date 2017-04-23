@@ -11,6 +11,10 @@ use r2d2_diesel_mysql::ConnectionManager;
 use secret::DB_CREDENTIALS;
 use super::{debug, MYSQL_DATE_FORMAT};
 
+/// Helper type holding the rate and difference from the current timestamp of a historical rate query
+#[derive(Copy, Clone, Queryable, PartialEq, Debug)]
+pub struct HistRateQueryResult(pub f32, pub i32);
+
 /// All valid currencies that are accepted by the API and may, at one point, have been in someone's Poloniex account.
 const CURRENCIES: &[&'static str] = &[
     "1CR","ABY","AC","ACH","ADN","AEON","AERO","AIR","AMP","APH","ARCH","ARDR","AUR",
@@ -40,7 +44,7 @@ pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {
 
 /// Given a pair and a timestamp, returns the exchange rate for that pair to BTC as close as possible to the provided timestamp.
 /// Expects a pair in the format "BTC/ETH".
-pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) -> Result<Option<f32>, String> {
+pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) -> Result<Option<HistRateQueryResult>, String> {
     let split = pair.split('/').collect::<Vec<&str>>();
     if split.len() < 2 {
         return Err(String::from("Invalid currency pair supplied!"))
@@ -52,11 +56,12 @@ pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) ->
         // create a query to find the trade nearest to the supplied timestamp within one day on either side.  Will return no rows if there
         // were no trades in the requested pair on one day on either side of the supplied timestamp.
         let query = format!(
-            "SELECT `rate` FROM `trades_{}_{}` WHERE `trade_time` BETWEEN DATE_SUB('{}', INTERVAL 1 DAY) AND DATE_ADD('{}', INTERVAL 1 DAY)
-            ORDER BY abs(TIMESTAMPDIFF(SECOND, '{}', `trade_time`))", split[0], split[1], formatted_timestamp, formatted_timestamp, formatted_timestamp);
+            "SELECT `rate`, TIMESTAMPDIFF(MINUTE, '{}', CURRENT_TIMESTAMP) FROM `trades_{}_{}` WHERE `trade_time` BETWEEN DATE_SUB('{}', INTERVAL 1 DAY)
+            AND DATE_ADD('{}', INTERVAL 1 DAY) ORDER BY abs(TIMESTAMPDIFF(SECOND, '{}', `trade_time`)) LIMIT 1",
+            formatted_timestamp, split[0], split[1], formatted_timestamp, formatted_timestamp, formatted_timestamp);
         let select_statement = sql_literal::sql(&query);
-        let res: Vec<f32> = select_statement
-            .load::<f32>(conn)
+        let res: Vec<HistRateQueryResult> = select_statement
+            .load::<HistRateQueryResult>(conn)
             .map_err(debug)?;
         if res.len() > 0 {
             Ok(Some(res[0]))
@@ -74,7 +79,7 @@ fn test_hist_rate_retrieval() {
 
     let pool = DbPool(create_db_pool());
     assert_eq!(
-        get_rate("BTC_DOGE", NaiveDateTime::parse_from_str("2014-01-25 05:44:38", MYSQL_DATE_FORMAT).unwrap(), &*pool.get_conn()),
-        Ok(Some(0.0000015))
+        get_rate("BTC/DOGE", NaiveDateTime::parse_from_str("2014-01-25 05:44:38", MYSQL_DATE_FORMAT).unwrap(), &*pool.get_conn()).unwrap().unwrap().0,
+        0.0000015
     );
 }

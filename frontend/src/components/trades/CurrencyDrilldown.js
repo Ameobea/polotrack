@@ -5,21 +5,25 @@
 import React from 'react';
 import ReactFauxDOM from 'react-faux-dom';
 import { connect } from 'dva';
+const _ = require('lodash');
 
 import { fetchPoloCandlestickData } from '../../utils/exchangeRates';
+import { batchFetchRates } from '../../utils/internalApi';
 
 /**
  * Given candlestick data in the correct format, creates a faux dom element, renders the chart to it, and
  * returns it.
  */
-function renderChart(candleData, baseWidth, filteredTrades, currency, onTradeHover, onTradeUnhover, onTradeClick) {
+function renderChart(
+  candleData, baseWidth, filteredTrades, currency, onTradeHover, onTradeUnhover, onTradeClick, poloRates, cmcRates
+) {
   candleData = candleData.splice(1);
   const chartElem = ReactFauxDOM.createElement('svg');
 
   // map the trades to the format expected by TechanJS
   const techanTrades = _.map(filteredTrades, ({pair, date, buy, price, amount}) => {
     const currencies = pair.split('/');
-    const realBuy = !((currencies[0] == currency) ^ buy)
+    const realBuy = !((currencies[0] == currency) ^ buy);
     return {
       pair: pair,
       date: new Date(date),
@@ -28,10 +32,6 @@ function renderChart(candleData, baseWidth, filteredTrades, currency, onTradeHov
       quantity: amount,
     };
   });
-
-  var dateFormat = d3.timeFormat("%d-%b-%y"),
-  parseDate = d3.timeParse("%d-%b-%y"),
-  valueFormat = d3.format(',.2f');
 
   const windowHeight = window.innerHeight
     || document.documentElement.clientHeight
@@ -45,7 +45,7 @@ function renderChart(candleData, baseWidth, filteredTrades, currency, onTradeHov
     .range([height, 0]);
   const candlestick = techan.plot.candlestick()
     .xScale(x)
-    .yScale(y);
+    .yScale(y)
   const tradearrow = techan.plot.tradearrow()
     .xScale(x)
     .yScale(y)
@@ -86,12 +86,43 @@ function renderChart(candleData, baseWidth, filteredTrades, currency, onTradeHov
   x.domain(candleData.map(candlestick.accessor().d));
   y.domain(techan.scale.plot.ohlc(candleData, candlestick.accessor()).domain());
 
-  svg.selectAll('g.candlestick').datum(candleData).call(candlestick);
-  svg.selectAll('g.tradearrow').datum(techanTrades).call(tradearrow);
-  svg.selectAll('g.x.axis').call(xAxis);
-  svg.selectAll('g.y.axis').call(yAxis);
+  // find all trades that don't include BTC and will need historical rate fetches
+  const needsFetch = [];
+  _.each(filteredTrades, ({pair, date}) => {
+    if(!pair.includes('BTC')) {
+      needsFetch.push({pair: `BTC/${currency}`, date});
+    }
+  });
 
-  return chartElem;
+  return new Promise((f, r) => {
+    // fetch all of the historical rates that we need to plot the trades on the chart
+    batchFetchRates(needsFetch, poloRates, cmcRates).then(histRates => {
+      // apply historical rates to all trades where the trade isn't based in BTC
+      const mappedTechanTrades = _.map(techanTrades, trade => {
+        // check if there's a stored result for this trade
+        const matchedHistRate = _.filter(histRates, ({date, pair}) => {
+          return new Date(date).getTime() == trade.date.getTime();
+        });
+
+        let realPrice = trade.price;
+        if(matchedHistRate.length !== 0) {
+          const histRate = matchedHistRate[0].rate;
+          realPrice = histRate;
+        }
+
+        return {...trade,
+          price: realPrice,
+        };
+      });
+
+      svg.selectAll('g.tradearrow').datum(mappedTechanTrades, trade => !trade.pair.includes('BTC')).call(tradearrow);
+      svg.selectAll('g.candlestick').datum(candleData).call(candlestick);
+      svg.selectAll('g.x.axis').call(xAxis);
+      svg.selectAll('g.y.axis').call(yAxis);
+
+      f(chartElem);
+    });
+  });
 }
 
 class CurrencyDrilldown extends React.Component {
@@ -104,23 +135,26 @@ class CurrencyDrilldown extends React.Component {
     this.state = {chartElem: null};
   }
 
+  componentDidMount() {
+    this.generateChart(this.props);
+  }
+
   componentWillReceiveProps(nextProps) {
     this.setState({chartElem: null});
     this.generateChart(nextProps);
   }
 
-  componentDidMount() {
-    this.generateChart(this.props);
-  }
-
   generateChart(props) {
-    let {pair, startTime, endTime, period, onTradeHover, onTradeUnhover, onTradeClick, currency, filteredTrades} = props;
+    let {pair, startTime, endTime, period, onTradeHover, onTradeUnhover, onTradeClick, currency, filteredTrades, poloRates, cmcRates} = props;
+    if(!poloRates || !cmcRates)
+      return;
 
     fetchPoloCandlestickData(pair, startTime, endTime, period).then(data => {
-      const chartElem = renderChart(
-        data, this.container.offsetWidth, filteredTrades, currency, onTradeHover, onTradeUnhover, onTradeClick
-      );
-      this.setState({chartElem: chartElem});
+      renderChart(
+        data, this.container.offsetWidth, filteredTrades, currency, onTradeHover, onTradeUnhover, onTradeClick, poloRates, cmcRates
+      ).then(chartElem => {
+        this.setState({chartElem: chartElem});
+      });
     }).catch(err => {
       console.log('Error while fetching candlestick data from Poloniex API: ');
       console.log(err);
@@ -147,4 +181,11 @@ class CurrencyDrilldown extends React.Component {
   }
 }
 
-export default connect()(CurrencyDrilldown);
+function mapProps(state) {
+  return {
+    poloRates: state.globalData.poloRates,
+    cmcRates: state.globalData.coinmarketcapRates,
+  };
+}
+
+export default connect(mapProps)(CurrencyDrilldown);

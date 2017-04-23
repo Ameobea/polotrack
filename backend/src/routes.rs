@@ -55,16 +55,21 @@ pub fn get_hist_rate(
     }
 
     // perform the database query for the historical rate and return the result
-    let rate = get_rate(&pair, timestamp, db_conn);
+    let query_result = get_rate(&pair, timestamp, db_conn);
 
-    // since we didn't find the value in the cache, insert the current one.
-    if rate.is_ok() {
-        rate_cache.set(pair, *rate.as_ref().unwrap(), timestamp);
+    // since we didn't find the value in the cache, insert the current one if it was recorded over an hour.
+    if query_result.is_ok() {
+        let res_inner = *query_result.as_ref().unwrap();
+
+        // only cache results older than the last 60 minutes
+        if res_inner.is_none() || res_inner.as_ref().unwrap().1 > 60 {
+            rate_cache.set(pair, res_inner, timestamp);
+        }
     }
 
-    CORS::any(match rate {
-        Ok(Some(rate)) => Ok(JSON(RateResponse{
-            rate: Some(rate),
+    CORS::any(match query_result {
+        Ok(Some(qr)) => Ok(JSON(RateResponse{
+            rate: Some(qr.0),
             no_data: false,
             cached: false,
         })),

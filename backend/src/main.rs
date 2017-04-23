@@ -5,6 +5,8 @@
 
 extern crate chrono;
 extern crate diesel;
+#[macro_use]
+extern crate diesel_codegen;
 extern crate hyper;
 extern crate hyper_native_tls;
 extern crate r2d2;
@@ -31,6 +33,7 @@ mod cors;
 mod routes;
 mod secret;
 mod db_query;
+use db_query::HistRateQueryResult;
 
 pub const MYSQL_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
@@ -57,8 +60,8 @@ impl RateCache {
     }
 
     /// Inserts an exchange rate into the cache
-    fn set(&self, pair: String, rate: Option<f32>, timestamp: NaiveDateTime) {
-        self.0.lock().unwrap().insert((pair, timestamp), rate);
+    fn set(&self, pair: String, rate: Option<HistRateQueryResult>, timestamp: NaiveDateTime) {
+        self.0.lock().unwrap().insert((pair, timestamp), rate.map(|qr| qr.0));
     }
 
     /// Attempts to retrieve a cached value from the inner `HashMap`
