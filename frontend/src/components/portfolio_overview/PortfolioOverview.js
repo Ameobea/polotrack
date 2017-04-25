@@ -33,12 +33,14 @@ class PortfolioOverview extends React.Component {
     if(!poloRates || !cmcRates)
       return;
 
-    this.calcBasises(nextProps);
+    // only calculate cost basises if this is the first time we're receiving `poloRates` and `cmcRates`
+    if(!this.props.poloRates || !this.props.cmcRates)
+      this.calcBasises(nextProps);
   }
 
   calcBasises(props) {
-    let {trades, poloRates, cmcRates} = props;
-    calcCostBasises(trades, poloRates, cmcRates).then(basises => {
+    let {trades, poloRates, cmcRates, cachedRates, dispatch} = props;
+    calcCostBasises(trades, poloRates, cmcRates, cachedRates, dispatch).then(basises => {
       this.setState({costBasises: basises});
     });
   }
@@ -112,6 +114,7 @@ function mapProps(state) {
     baseRate: state.globalData.baseExchangeRate,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
     cmcRates: state.globalData.coinmarketcapRates,
+    cachedRates: state.globalData.cachedRates,
   };
 }
 

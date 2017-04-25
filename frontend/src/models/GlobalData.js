@@ -1,6 +1,8 @@
 //! Keeps track of data that affects the state of the entire application including exchange rates and cached
 //! data from both the Poloniex and internal API.
 
+const _ = require('lodash');
+
 export default {
   namespace: 'globalData',
 
@@ -9,7 +11,9 @@ export default {
     baseCurrencySymbol: '$',
     baseExchangeRate: null,
     poloRates: {}, // the current exchange rates vs. BTC for all available currencies
+    poloSeq: 0,
     coinmarketcapRates: null,
+    cachedRates: {},
   },
 
   reducers: {
@@ -39,6 +43,7 @@ export default {
     poloRatesUpdate(state, {rates}) {
       return {...state,
         poloRates: rates,
+        poloSeq: state.poloSeq + 1,
       };
     },
 
@@ -48,6 +53,23 @@ export default {
     coinmarketcapRatesReceived(state, {rates}) {
       return {...state,
         coinmarketcapRates: rates,
+      };
+    },
+
+    /**
+     * Triggered when a historical rate is retrieved from the historical exchange rate API and should be
+     * inserted into the internal historical exchange rate cache.
+     */
+    historicalRateReceived(state, {pair, histRate}) {
+      const newCachedRates = {...state.cachedRates};
+      if(!newCachedRates[pair]) {
+        newCachedRates[pair] = [histRate];
+      } else {
+        newCachedRates[pair].push(histRate);
+      }
+
+      return {...state,
+        cachedRates: newCachedRates,
       };
     },
   },

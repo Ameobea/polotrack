@@ -175,7 +175,6 @@ class TradeHistory extends React.Component {
       return <Option key={currency} value={currency}>{currency}</Option>;
     });
 
-    console.log(this.state.hoveredTrade);
     const tradeDetail = this.state.hoveredTrade ? (
       <table>
         <tbody>

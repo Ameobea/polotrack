@@ -53,7 +53,7 @@ function calcCurrentHoldings(deposits, withdrawls, trades) {
  * determines the cost basis of the given currency for the account.
  * Returns a promise that yields the results after the necessary API requests and calculations have been completed.
  */
-function calcCostBasises(trades, poloRates, cmcRates) {
+function calcCostBasises(trades, poloRates, cmcRates, cachedRates, dispatch) {
   // keeps track of running totals and cost basises for all currencies
   const costBasises = {};
 
@@ -69,7 +69,7 @@ function calcCostBasises(trades, poloRates, cmcRates) {
 
   // fetch the historical rates from the API for all pairs that need fetching and then calculate cost basis
   return new Promise((f, r) => {
-    batchFetchRates(needsFetch, poloRates, cmcRates).then(queryResults => {
+    batchFetchRates(needsFetch, poloRates, cmcRates, cachedRates, dispatch).then(queryResults => {
       _.each(_.sortBy(trades, 'date'), ({date, pair, buy, amount, cost, price}) => {
         const currencies = pair.split('/');
         let boughtCurrency, soldCurrency, boughtAmount, soldAmount;
@@ -218,7 +218,7 @@ function calcHistPortfolioValue(holdings, histDate, histRates, baseCurrency) {
  * returning the results as an object.  Returns a promise that fulfills once the result is available.
  */
 function calcRecentChanges(
-  baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades
+  baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades, cachedRates, dispatch
 ) {
   return new Promise((f, r) => {
     // round current date to nearest 1000 seconds so that we can cache requests better
@@ -245,7 +245,7 @@ function calcRecentChanges(
     });
 
     // make all the requests using the internal API
-    batchFetchRates(rateRequests, poloRates, cmcRates).then(histRates => {
+    batchFetchRates(rateRequests, poloRates, cmcRates, cachedRates, dispatch).then(histRates => {
 
       // roll back portfolio to all three historical levels and calculate value at those points
       var i = -1;

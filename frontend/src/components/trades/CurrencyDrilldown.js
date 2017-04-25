@@ -15,7 +15,8 @@ import { batchFetchRates } from '../../utils/internalApi';
  * returns it.
  */
 function renderChart(
-  candleData, baseWidth, filteredTrades, currency, onTradeHover, onTradeUnhover, onTradeClick, poloRates, cmcRates
+  candleData, baseWidth, filteredTrades, currency, onTradeHover,
+  onTradeUnhover, onTradeClick, poloRates, cmcRates, cachedRates, dispatch
 ) {
   candleData = candleData.splice(1);
   const chartElem = ReactFauxDOM.createElement('svg');
@@ -96,7 +97,7 @@ function renderChart(
 
   return new Promise((f, r) => {
     // fetch all of the historical rates that we need to plot the trades on the chart
-    batchFetchRates(needsFetch, poloRates, cmcRates).then(histRates => {
+    batchFetchRates(needsFetch, poloRates, cmcRates, cachedRates, dispatch).then(histRates => {
       // apply historical rates to all trades where the trade isn't based in BTC
       const mappedTechanTrades = _.map(techanTrades, trade => {
         // check if there's a stored result for this trade
@@ -140,18 +141,25 @@ class CurrencyDrilldown extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    this.setState({chartElem: null});
-    this.generateChart(nextProps);
+    // only regenerate chart if the selected currency changed or we just got polo and cmc rates for the first time
+    if(this.props.currency != nextProps.currency || !this.props.poloRates || !this.props.cmcRates) {
+      this.setState({chartElem: null});
+      this.generateChart(nextProps);
+    }
   }
 
   generateChart(props) {
-    let {pair, startTime, endTime, period, onTradeHover, onTradeUnhover, onTradeClick, currency, filteredTrades, poloRates, cmcRates} = props;
+    let {
+      pair, startTime, endTime, period, onTradeHover, onTradeUnhover, onTradeClick,
+      currency, filteredTrades, poloRates, cmcRates, cachedRates, dispatch
+    } = props;
     if(!poloRates || !cmcRates)
       return;
 
     fetchPoloCandlestickData(pair, startTime, endTime, period).then(data => {
       renderChart(
-        data, this.container.offsetWidth, filteredTrades, currency, onTradeHover, onTradeUnhover, onTradeClick, poloRates, cmcRates
+        data, this.container.offsetWidth, filteredTrades, currency, onTradeHover, onTradeUnhover,
+        onTradeClick, poloRates, cmcRates, cachedRates, dispatch
       ).then(chartElem => {
         this.setState({chartElem: chartElem});
       });
@@ -185,6 +193,7 @@ function mapProps(state) {
   return {
     poloRates: state.globalData.poloRates,
     cmcRates: state.globalData.coinmarketcapRates,
+    cachedRates: state.globalData.cachedRates,
   };
 }
 

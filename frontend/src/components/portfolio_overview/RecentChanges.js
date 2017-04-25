@@ -39,10 +39,8 @@ class RecentChanges extends React.Component {
     this.handleSwitch = this.handleSwitch.bind(this);
     this.recalculateChanges = this.recalculateChanges.bind(this);
 
-    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates, baseCurrency} = props;
-    calcRecentChanges(baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, false).then(res => {
-      this.setState({recentChanges: res});
-    });
+    if(props.poloRates && props.cmcRates)
+      this.recalculateChanges(props, false);
 
     this.state = {
       recentChanges: null,
@@ -51,12 +49,21 @@ class RecentChanges extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    this.recalculateChanges(nextProps, !this.state.includeDepsWithdrawls);
+    // only recalculate changes if the poloniex rates have changed
+    if(this.props.poloSeq !== nextProps.poloSeq)
+      this.recalculateChanges(nextProps, !this.state.includeDepsWithdrawls);
   }
 
   recalculateChanges(props, onlyTrades) {
-    let {deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates, baseCurrency} = props;
-    calcRecentChanges(baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates, cmcRates, curValue, onlyTrades).then(res => {
+    let {
+      deposits, withdrawls, trades, curValue, curHoldings, poloRates, cmcRates, baseCurrency, cachedRates, dispatch
+    } = props;
+
+    calcRecentChanges(
+      baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates,
+      cmcRates, curValue, onlyTrades, cachedRates, dispatch
+    ).then(res => {
+      console.log(res);
       this.setState({recentChanges: res});
     });
   }
@@ -113,7 +120,9 @@ function mapProps(state) {
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
     baseRate: state.globalData.baseExchangeRate,
     poloRates: state.globalData.poloRates,
+    poloSeq: state.globalData.poloSeq,
     cmcRates: state.globalData.coinmarketcapRates,
+    cachedRates: state.globalData.cachedRates,
   };
 }
 

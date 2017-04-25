@@ -79,9 +79,7 @@ class PortfolioDistribution extends React.Component {
 
     this.chartConfig.series[0].data = this.getSeriesData(curHoldings, poloRates, cmcRates);
 
-    return (
-      <Highchart config={this.chartConfig} isPureConfig />
-    );
+    return <Highchart config={this.chartConfig} isPureConfig />;
   }
 }
 
