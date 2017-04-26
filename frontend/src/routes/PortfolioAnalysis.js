@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { connect } from 'dva';
+// import { Row, Col } from 'antd';
 
-// TODO
+import HistoricalDistributions from '../components/portfolio_analysis/HistoricalDistributions';
+
 class PortfolioAnalysis extends React.Component {
   render() {
     return (
       <div>
-        Portfolio Analysis
+        <HistoricalDistributions />
       </div>
     );
   }
