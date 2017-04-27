@@ -11,6 +11,7 @@ extern crate hyper;
 extern crate hyper_native_tls;
 extern crate r2d2;
 extern crate r2d2_diesel_mysql;
+extern crate rayon;
 extern crate rocket;
 // #[macro_use]
 extern crate rocket_contrib;
@@ -74,9 +75,17 @@ impl RateCache {
 }
 
 fn main() {
+    // initialize Rayon threadpool with custom configuration with 24 "threads" which actually translates to MySQL Connections
+    rayon::initialize(rayon::Configuration::new().num_threads(24)).expect("Unable to initialize Rayon threadpool!");
+
     // initialize the Rocket webserver
     rocket::ignite()
-        .mount("/", routes![routes::get_hist_rate, routes::hist_rate_cors_preflight, routes::get_batch_hist_rates])
+        .mount("/", routes![
+            routes::get_hist_rate,
+            routes::hist_rate_cors_preflight,
+            routes::get_batch_hist_rates,
+            routes::hist_batch_rate_cors_preflight,
+        ])
         .manage(DbPool(db_query::create_db_pool()))
         .manage(RateCache::new())
         .launch();

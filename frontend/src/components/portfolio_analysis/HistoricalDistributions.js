@@ -32,12 +32,11 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
   // request historical rates for each of the currencies at each of the timestamps
   const needsFetch = _.flatten(_.map(mergedData, evt => {
     // don't forget to fetch base currency exchange rate as well
-    return _.map([baseCurrency, ...currencies], currency => { return {pair: `BTC_${currency}`, date: evt.data.date}; });
+    return _.map([baseCurrency, ...currencies], currency => { return {pair: `BTC/${currency}`, date: evt.data.date}; });
   }));
 
   return new Promise((f, r) => {
     batchFetchRates(needsFetch, poloRates, cmcRates, cachedRates, dispatch).then(queryResults => {
-      console.log(queryResults);
       const histBalances = {};
       const curPortfolio = {};
       _.each(currencies, currency => {
@@ -46,33 +45,48 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
       });
 
       // calculate portfolio value for each currency at each event and keep running totals
-      _.each(_.sortBy(mergedData, ({date}) => new Date(date).getTime()), ({type, data}) => {
+      _.each(_.sortBy(mergedData, ({data}) => new Date(data.date).getTime()), ({type, data}) => {
         // find the data for all currencies at the current timestamp from the historical data
         const momentData = _.filter(queryResults, histRate => {
           return new Date(histRate.date).getTime() == new Date(data.date).getTime();
         });
+        const histBaseRate = _.filter(momentData, histRate => histRate.pair == `BTC/${baseCurrency}`)[0].rate;
 
         // modify the historical portfolio based on the event that occured
         if(type == 'deposit') {
           curPortfolio[data.currency] += data.amount;
         } else if(type == 'withdrawl') {
           curPortfolio[data.currency] -= data.amount;
+          if(curPortfolio[data.currency] < 0)
+            curPortfolio[data.currency] = 0;
         } else {
           const currencies = data.pair.split('/');
           const neg = data.buy ? 1 : -1;
           curPortfolio[currencies[0]] += (neg * data.amount);
           curPortfolio[currencies[1]] -= (neg * data.cost);
+          const feedCurrency = data.buy ? currencies[0] : currencies[1];
+          const feedTotal = data.buy ? data.amount : data.cost;
+          curPortfolio[feedCurrency] -= ((data.fee / 100) * feedTotal);
+
+          if(curPortfolio[currencies[0]] < 0)
+            curPortfolio[currencies[0]] = 0;
+          if(curPortfolio[currencies[1]] < 0)
+            curPortfolio[currencies[1]] = 0;
         }
 
         // calculate balances using historical rates and add to the result array
         _.each(currencies, currency => {
-          const histRate = _.filter(momentData, histRate => histRate.pair == `BTC_${currency}`)[0].rate;
-          histBalances[currency].push(histRate * curPortfolio[currency]);
+          const histRate = _.filter(momentData, histRate => histRate.pair == `BTC/${currency}`)[0].rate;
+          histBalances[currency].push(histRate * curPortfolio[currency] * histBaseRate);
         });
       });
 
-      console.log(histBalances);
-      f(histBalances); // TODO
+      f(_.map(currencies, currency => {
+        return {
+          name: currency,
+          data: histBalances[currency],
+        }
+      }));
     });
   });
 }
@@ -88,12 +102,12 @@ class HistoricalDistributions extends React.Component {
       title: 'Historical Portfolio Distribution',
       yAxis: {
         title: {
-          text: 'Percent'
+          text: `${props.baseCurrencySymbol}${props.baseCurrency}`
         }
       },
       plotOptions: {
         area: {
-          stacking: 'percent',
+          stacking: 'normal',
           lineColor: '#ffffff',
           lineWidth: 1,
           marker: {
@@ -104,6 +118,13 @@ class HistoricalDistributions extends React.Component {
       },
       series: null,
     };
+
+    if(props.poloRates && props.cmcRates) {
+      const {baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch} = props;
+      createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch).then(series => {
+        this.setState({chartData: series});
+      });
+    }
 
     this.state = {chartData: null};
   }
@@ -119,6 +140,7 @@ class HistoricalDistributions extends React.Component {
 
   render() {
     if(this.state.chartData) {
+      this.chartConfig.series = this.state.chartData;
       return <Highchart config={this.chartConfig} isPureConfig />;
     } else {
       return <span>Loading...</span>;

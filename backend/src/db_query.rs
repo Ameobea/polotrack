@@ -19,7 +19,7 @@ pub struct HistRateQueryResult(pub f32, pub i32);
 const CURRENCIES: &[&'static str] = &[
     "1CR","ABY","AC","ACH","ADN","AEON","AERO","AIR","AMP","APH","ARCH","ARDR","AUR",
     "AXIS","BALLS","BANK","BBL","BBR","BCC","BCN","BCY","BDC","BDG","BELA","BITCNY","BITS","BITUSD","BLK","BLOCK","BLU",
-    "BNS","BONES","BOST","BTC","BTCD","BTCS","BTM","BTS","BURN","BURST","C2","CACH","CAI","CC","CCN","CGA","CHA","CINNI",
+    "BNS","BONES","BOST","BTC", "BTCD","BTCS","BTM","BTS","BURN","BURST","C2","CACH","CAI","CC","CCN","CGA","CHA","CINNI",
     "CLAM","CNL","CNMT","CNOTE","COMM","CON","CORG","CRYPT","CURE","CYC","DAO","DASH","DCR","DGB","DICE","DIEM","DIME",
     "DIS","DNS","DOGE","DRKC","DRM","DSH","DVK","EAC","EBT","ECC","EFL","EMC2","EMO","ENC","ETC","ETH","eTOK","EXE","EXP",
     "FAC","FCN","FCT","FIBRE","FLAP","FLDC","FLO","FLT","FOX","FRAC","FRK","FRQ","FVZ","FZ","FZN","GAME","GAP","GDN",
@@ -47,10 +47,12 @@ pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {
 pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) -> Result<Option<HistRateQueryResult>, String> {
     let split = pair.split('/').collect::<Vec<&str>>();
     if split.len() < 2 {
-        return Err(String::from("Invalid currency pair supplied!"))
+        return Err(format!("Invalid currency pair supplied: {}!", pair))
     }
 
-    if CURRENCIES.contains(&split[0]) && CURRENCIES.contains(&split[1]) {
+    if split[0] == "BTC" && split[1] == "BTC" {
+        Ok(Some(HistRateQueryResult(1f32, 1000000)))
+    } else if CURRENCIES.contains(&split[0]) && CURRENCIES.contains(&split[1]) {
         // have to construct raw SQL here since Diesel doesn't deal well with dynamic queries and writing macros is horrible
         let formatted_timestamp = timestamp.format(MYSQL_DATE_FORMAT);
         // create a query to find the trade nearest to the supplied timestamp within one day on either side.  Will return no rows if there
@@ -69,6 +71,7 @@ pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) ->
             Ok(None)
         }
     } else {
+        println!("Requested currency pair {} but we don't have data for that.", pair);
         Err(String::from("Invalid currency pair supplied."))
     }
 }

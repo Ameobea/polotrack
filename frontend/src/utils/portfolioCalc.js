@@ -93,7 +93,7 @@ function calcCostBasises(trades, poloRates, cmcRates, cachedRates, dispatch) {
           // the exchange rate for BTC/XMR at the current date
           // rate is how many currency 2 it takes to buy one currency 1
           const secondaryRate = _.filter(queryResults, res => {
-            return date == res.date && res.pair == `BTC/${currencies[0]}`;
+            return new Date(date).getTime() == new Date(res).getTime().date && res.pair == `BTC/${currencies[0]}`;
           });
 
           if(secondaryRate.length == 0){
@@ -185,7 +185,7 @@ function calcHistPortfolioValue(holdings, histDate, histRates, baseCurrency) {
   let totalValue = 0;
   // find the historical base rate value
   const histBaseRateRes = _.filter(histRates, ({date, pair, rate}) => {
-    return date == histDate && pair == `BTC/${baseCurrency}`;
+    return new Date(date).getTime() == new Date(histDate).getTime() && pair == `BTC/${baseCurrency}`;
   });
   if(histBaseRateRes.length === 0) {
     console.error(`Unable to look up historical base rate at date ${histDate}`);
@@ -194,7 +194,7 @@ function calcHistPortfolioValue(holdings, histDate, histRates, baseCurrency) {
   _.each(Object.keys(holdings), currency => {
     // filter the correct historical rate for this data point from the historical rates array
     const histRateRes = _.filter(histRates, ({date, pair, rate}) => {
-      return date == histDate && pair.includes(currency);
+      return new Date(date).getTime() == new Date(histDate).getTime() && pair.includes(currency);
     });
     if(histRateRes.length === 0) {
       console.error(`Unable to look up historical rate for ${currency} at date ${histDate}`);

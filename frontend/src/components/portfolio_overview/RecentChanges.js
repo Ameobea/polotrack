@@ -63,7 +63,6 @@ class RecentChanges extends React.Component {
       baseCurrency, deposits, withdrawls, trades, curHoldings, poloRates,
       cmcRates, curValue, onlyTrades, cachedRates, dispatch
     ).then(res => {
-      console.log(res);
       this.setState({recentChanges: res});
     });
   }
