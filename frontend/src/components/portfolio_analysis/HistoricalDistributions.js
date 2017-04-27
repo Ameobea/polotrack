@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { connect } from 'dva';
+import { Row, Col, Switch } from 'antd';
 const Highchart = require('react-highcharts');
 const _ = require('lodash');
 
@@ -95,6 +96,8 @@ class HistoricalDistributions extends React.Component {
   constructor(props) {
     super(props);
 
+    this.handleToggle = this.handleToggle.bind(this);
+
     this.chartConfig = {
       chart: {
         type: 'area',
@@ -102,11 +105,12 @@ class HistoricalDistributions extends React.Component {
       title: 'Historical Portfolio Distribution',
       yAxis: {
         title: {
-          text: `${props.baseCurrencySymbol}${props.baseCurrency}`
+          text: `${props.baseCurrencySymbol}${props.baseCurrency}`,
         }
       },
       plotOptions: {
         area: {
+          animation: false,
           stacking: 'normal',
           lineColor: '#ffffff',
           lineWidth: 1,
@@ -119,29 +123,66 @@ class HistoricalDistributions extends React.Component {
       series: null,
     };
 
-    if(props.poloRates && props.cmcRates) {
-      const {baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch} = props;
-      createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch).then(series => {
-        this.setState({chartData: series});
-      });
+    if(props.poloRates && props.cmcRates && !this.props.histBalances) {
+      this.calcChartData(props);
     }
 
-    this.state = {chartData: null};
+    this.state = {percentageBased: false};
   }
 
   componentWillReceiveProps(nextProps) {
-    if((!this.props.poloRates || !this.props.cmcRates) && nextProps.poloRates && nextProps.cmcRates) {
-      const {baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch} = nextProps;
-      createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch).then(series => {
-        this.setState({chartData: series});
-      });
+    if(
+      (!this.props.poloRates || !this.props.cmcRates) && nextProps.poloRates && nextProps.cmcRates || !nextProps.histBalances
+    ) {
+      this.calcChartData(nextProps);
     }
   }
 
+  calcChartData(props) {
+    const {baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch} = props;
+    createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch).then(data => {
+      dispatch({type: 'userData/histBalancesCalculated', histBalances: data});
+    }).catch(err => console.error);
+  }
+
+  handleToggle() {
+    this.setState({percentageBased: !this.state.percentageBased});
+  }
+
   render() {
-    if(this.state.chartData) {
-      this.chartConfig.series = this.state.chartData;
-      return <Highchart config={this.chartConfig} isPureConfig />;
+    if(this.props.histBalances) {
+      const {baseCurrency, baseCurrencySymbol} = this.props;
+
+      const chartConfig = {...this.chartConfig,
+        yAxis: {
+          title: {
+            text: this.state.percentageBased ? 'Percent' : `${baseCurrencySymbol}${baseCurrency}`,
+          }
+        },
+        plotOptions: {
+          area: {...this.chartConfig.plotOptions.area,
+            stacking: this.state.percentageBased ? 'percent' : 'normal',
+          },
+        },
+        series: this.props.histBalances,
+      };
+
+      return (
+        <div>
+          <Row>
+            <Col span={12}>
+              <center>
+                Percentage-Based <Switch checked={this.state.percentageBased} onChange={this.handleToggle} />
+              </center>
+            </Col>
+          </Row>
+          <Row>
+            <Col span={24}>
+              <Highchart config={chartConfig} isPureConfig />
+            </Col>
+          </Row>
+        </div>
+      );
     } else {
       return <span>Loading...</span>;
     }
@@ -159,6 +200,7 @@ function mapProps(state) {
     poloRates: state.globalData.poloRates,
     cmcRates: state.globalData.coinmarketcapRates,
     cachedRates: state.globalData.cachedRates,
+    histBalances: state.userData.histBalances,
   };
 }
 

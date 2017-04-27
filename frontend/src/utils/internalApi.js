@@ -56,6 +56,9 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
     }).catch(err => {
       console.error(err)
     }).then(body => {
+      // cache the rates internally
+      dispatch({type: 'globalData/batchHistoricalRatesReceived', histRates: body});
+
       // if no data was found for a pair from the API, check other sources
       const mappedResults = _.map(body, ({no_data, pair, rate, date, cached}) => {
         if(no_data) {
@@ -63,9 +66,6 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
           rate = getBtcValue(pair.split('/')[1], 1, poloRates, cmcRates);
         }
         const realRate = pair.includes('USDT') ? 1 / rate : rate;
-
-        // cache the rate internally
-        dispatch({type: 'globalData/historicalRateReceived', pair: pair, histRate: {date, rate, pair, no_data, cached}});
 
         return {pair, rate: realRate, date: new Date(date), no_data, cached};
       });

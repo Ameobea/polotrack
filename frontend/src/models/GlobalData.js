@@ -68,9 +68,24 @@ export default {
         newCachedRates[pair].push(histRate);
       }
 
-      return {...state,
-        cachedRates: newCachedRates,
-      };
+      return {...state, cachedRates: newCachedRates};
     },
+
+    /**
+     * Triggered when multiple historical rates are received from the historical rate API and should all be inserted
+     * into the internal historical exchange rate cache.
+     */
+    batchHistoricalRatesReceived(state, {histRates}) {
+      const newCachedRates = {...state.cachedRates};
+      _.each(histRates, histRate => {
+        if(!newCachedRates[histRate.pair]) {
+          newCachedRates[histRate.pair] = [histRate];
+        } else {
+          newCachedRates[histRate.pair].push(histRate);
+        }
+      });
+
+      return {...state, cachedRates: newCachedRates};
+    }
   },
 };
