@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { Layout, Menu } from 'antd';
-import { Link } from 'react-router'
+import { Link } from 'react-router';
 import Lockr from 'lockr';
 import { connect } from 'dva';
 const { Header, Content, Footer } = Layout;
+const _ = require('lodash');
 
 import gstyles from '../static/css/global.css';
 import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
@@ -13,6 +14,8 @@ import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exc
 class IndexPage extends React.Component {
   constructor(props) {
     super(props);
+
+    this.handleMenuClick = this.handleMenuClick.bind(this);
 
     // check localStorage for existing user data
     Lockr.prefix = 'userData';
@@ -54,7 +57,11 @@ class IndexPage extends React.Component {
       props.dispatch({type: 'globalData/coinmarketcapRatesReceived', rates: parsedRates});
     });
 
-    this.state = {};
+    this.state = {selectedMenuItem: '1'};
+  }
+
+  handleMenuClick(e) {
+    this.setState({selectedMenuItem: e.key});
   }
 
   render() {
@@ -63,26 +70,28 @@ class IndexPage extends React.Component {
         <Header className={gstyles.header}>
           <Menu
             className={gstyles.bigText}
-            defaultSelectedKeys={['2']}
-            mode="horizontal"
+            defaultSelectedKeys={[this.state.selectedMenuItem]}
+            mode='horizontal'
+            onClick={this.handleMenuClick}
             style={{ lineHeight: '64px' }}
-            theme="dark"
+            theme='dark'
           >
-            <Menu.Item key="1"><Link to='/index'>Overview</Link></Menu.Item>
-            <Menu.Item disabled={!this.props.dataUploaded} key="2"><Link to='/portfolio'>Portfolio Analysis</Link></Menu.Item>
-            <Menu.Item disabled={!this.props.dataUploaded} key="3"><Link to='/trades'>Trade History</Link></Menu.Item>
+            <Menu.Item key='1'><Link to='/index'>Overview</Link></Menu.Item>
+            <Menu.Item disabled={!this.props.dataUploaded} key='2'><Link to='/portfolio'>Portfolio Analysis</Link></Menu.Item>
+            <Menu.Item disabled={!this.props.dataUploaded} key='3'><Link to='/trades'>Trade History</Link></Menu.Item>
           </Menu>
         </Header>
         <Content className={gstyles.content}>
           {this.props.children}
         </Content>
         <Footer className={gstyles.footer}>
-          PoloTrack created by <a href='https://ameobea.me/' target='_blank'>Casey Primozic</a> © 2017  |  <a href='mailto:me@ameo.link'>Contact Me</a>{'   | '}
+          PoloTrack created by <a href='https://ameobea.me/' rel='noopener noreferrer' target='_blank'>Casey Primozic</a>
+          {' © 2017  |  '}<a href='mailto:me@ameo.link'>Contact Me</a>{'   | '}
           Tip ETH: 0x41b836Ad74E61279cD33B1Eba452cF34058e06a6 | Tip BTC: 1MM1Mj4msXmkkDBcd475RwyZp4ao4pC67w
-          <br/ >
+          <br />
           This site is not affiliated with Poloniex Inc.  It is an independant, unnoficial site provided as a free service.
           The full source code for this application can be found <a href='https://github.com/ameobea/polotrack'>on Github</a>.
-          <br/ >
+          <br />
 
         </Footer>
       </Layout>

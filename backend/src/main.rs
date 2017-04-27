@@ -76,7 +76,7 @@ impl RateCache {
 fn main() {
     // initialize the Rocket webserver
     rocket::ignite()
-        .mount("/", routes![routes::get_hist_rate, routes::hist_rate_cors_preflight])
+        .mount("/", routes![routes::get_hist_rate, routes::hist_rate_cors_preflight, routes::get_batch_hist_rates])
         .manage(DbPool(db_query::create_db_pool()))
         .manage(RateCache::new())
         .launch();
