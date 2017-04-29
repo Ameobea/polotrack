@@ -14,6 +14,7 @@ export default {
     poloSeq: 0,
     coinmarketcapRates: null,
     cachedRates: {},
+    isDemo: false,
   },
 
   reducers: {
@@ -86,6 +87,13 @@ export default {
       });
 
       return {...state, cachedRates: newCachedRates};
-    }
+    },
+
+    /**
+     * Sets whether or not the currently uploaded data is demo data or a user's own uploaded data.
+     */
+    setDemoFlag(state, {isDemo}) {
+      return {...state, isDemo: isDemo};
+    },
   },
 };

@@ -5,6 +5,7 @@ import AppPage from './components/AppPage';
 import IndexPage from './routes/IndexPage';
 import PortfolioAnalysis from './routes/PortfolioAnalysis';
 import TradeHistory from './routes/TradeHistory';
+import ExampleLoader from './routes/ExampleLoader';
 
 function RouterConfig({ history }) {
   return (
@@ -14,6 +15,7 @@ function RouterConfig({ history }) {
         <Route component={IndexPage} path='/index' />
         <Route component={PortfolioAnalysis} path='/portfolio' />
         <Route component={TradeHistory} path='/trades' />
+        <Route component={ExampleLoader} path='/demo' />
       </Route>
     </Router>
   );

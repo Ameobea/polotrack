@@ -11,6 +11,7 @@ const _ = require('lodash');
 import gstyles from '../static/css/global.css';
 import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
 import FileUploader from './FileUploader';
+import DemoBanner from './DemoBanner';
 
 class IndexPage extends React.Component {
   constructor(props) {
@@ -71,6 +72,8 @@ class IndexPage extends React.Component {
   }
 
   render() {
+    const banner = this.props.isDemo ? <DemoBanner /> : <span />;
+
     return (
       <Layout className={gstyles.application}>
         <Header className={gstyles.header}>
@@ -89,6 +92,7 @@ class IndexPage extends React.Component {
           </Menu>
         </Header>
         <Content className={gstyles.content}>
+          {banner}
           <FileUploader visible={this.state.fileUploaderVisible} />
           {this.props.children}
         </Content>
@@ -111,6 +115,7 @@ function mapProps(state) {
   return {
     baseCurrency: state.globalData.baseCurrency,
     dataUploaded: state.userData.dataUploaded,
+    isDemo: state.globalData.isDemo,
   };
 }
 

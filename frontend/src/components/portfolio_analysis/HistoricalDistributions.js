@@ -208,7 +208,7 @@ class HistoricalDistributions extends React.Component {
         </div>
       );
     } else {
-      return <span>Loading...</span>;
+      return <span>Loading...  (This may take a long time)</span>;
     }
   }
 }

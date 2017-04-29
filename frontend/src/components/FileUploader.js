@@ -128,6 +128,8 @@ class FileUploader extends React.Component {
 
       // signal that all data has been successfully uploaded and that it's time to show some juicy visualizations
       this.props.dispatch({type: 'userData/allDataUploaded'});
+      // since this is real user data, set the `isDemo` flag to false
+      dispatch({type: 'globalData/setDemoFlag', isDemo: false});
     }, 1234);
     this.setState({
       confirmLoading: true,
@@ -183,4 +185,12 @@ class FileUploader extends React.Component {
   }
 }
 
-export default connect()(FileUploader);
+function mapProps(state) {
+  return {
+    deposits: state.userData.deposits,
+    withdrawls: state.userData.withdrawls,
+    trades: state.userData.trades,
+  };
+}
+
+export default connect(mapProps)(FileUploader);

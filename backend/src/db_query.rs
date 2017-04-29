@@ -36,6 +36,8 @@ const CURRENCIES: &[&'static str] = &[
     "ZEC", "USD", "EUR", "JPY", "GBP", "CAD", "NZD", "NOK"
 ];
 
+const BASE_CURRENCIES: &[&'static str] = &["USD", "EUR", "JPY", "GBP", "CAD", "NZD", "NOK"];
+
 pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {
     let config = Config::default();
     let manager = ConnectionManager::<MysqlConnection>::new(format!("{}", DB_CREDENTIALS));
@@ -53,14 +55,22 @@ pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) ->
     if split[0] == "BTC" && split[1] == "BTC" {
         Ok(Some(HistRateQueryResult(1f32, 1000000)))
     } else if CURRENCIES.contains(&split[0]) && CURRENCIES.contains(&split[1]) {
+        // base currencies have min precision of 1 obs every 24 hours; much more precise for Poloniex trade data
+        let search_radius = if BASE_CURRENCIES.contains(&split[1]) { 13 } else { 4 };
         // have to construct raw SQL here since Diesel doesn't deal well with dynamic queries and writing macros is horrible
         let formatted_timestamp = timestamp.format(MYSQL_DATE_FORMAT);
         // create a query to find the trade nearest to the supplied timestamp within one day on either side.  Will return no rows if there
         // were no trades in the requested pair on one day on either side of the supplied timestamp.
         let query = format!(
-            "SELECT `rate`, TIMESTAMPDIFF(MINUTE, '{}', CURRENT_TIMESTAMP) FROM `trades_{}_{}` WHERE `trade_time` BETWEEN DATE_SUB('{}', INTERVAL 1 DAY)
-            AND DATE_ADD('{}', INTERVAL 1 DAY) ORDER BY abs(TIMESTAMPDIFF(SECOND, '{}', `trade_time`)) LIMIT 1",
-            formatted_timestamp, split[0], split[1], formatted_timestamp, formatted_timestamp, formatted_timestamp);
+            "SELECT `rate`, TIMESTAMPDIFF(MINUTE, '{}', CURRENT_TIMESTAMP)
+            FROM `trades_{}_{}`
+            WHERE `trade_time` BETWEEN DATE_SUB('{}', INTERVAL {} HOUR)
+              AND DATE_ADD('{}', INTERVAL {} HOUR)
+            ORDER BY abs(TIMESTAMPDIFF(SECOND, '{}', `trade_time`))
+            LIMIT 1",
+            formatted_timestamp, split[0], split[1], formatted_timestamp,
+            search_radius, formatted_timestamp, search_radius, formatted_timestamp
+        );
         let select_statement = sql_literal::sql(&query);
         let res: Vec<HistRateQueryResult> = select_statement
             .load::<HistRateQueryResult>(conn)
