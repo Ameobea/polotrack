@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { connect } from 'dva';
-import { Alert, Button, Modal, Row, Col } from 'antd';
-import Lockr from 'lockr';
-
+import { Alert, Button, Row, Col } from 'antd';
 import FileUploader from '../components/FileUploader';
 import gstyles from '../static/css/global.css';
 
@@ -13,52 +11,12 @@ class Welcome extends React.Component {
     super(props);
 
     this.showFileUploader = this.showFileUploader.bind(this);
-    this.hideFileUploader = this.hideFileUploader.bind(this);
-    this.fileUploaderOk = this.fileUploaderOk.bind(this);
-    this.allDataUploaded = this.allDataUploaded.bind(this);
 
-    this.state = {
-      confirmLoading: false,
-      fileUploaderVisible: false,
-    };
-  }
-
-  hideFileUploader() {
-    this.setState({fileUploaderVisible: false});
+    this.state = {fileUploaderVisible: false};
   }
 
   showFileUploader() {
     this.setState({fileUploaderVisible: true});
-  }
-
-  fileUploaderOk() {
-    if(!this.allDataUploaded())
-      return;
-
-    // show a spinning loading button for 1.234 seconds to make the people think we're doing super-science then hide modal
-    setTimeout(() => {
-      this.setState({
-        confirmLoading: false,
-        fileUploaderVisible: false,
-      });
-
-      // store the uploaded data in localStorage so it's persistant
-      Lockr.prefix = 'userData';
-      Lockr.set('deposits', JSON.stringify(this.props.deposits));
-      Lockr.set('withdrawls', JSON.stringify(this.props.withdrawls));
-      Lockr.set('trades', JSON.stringify(this.props.trades));
-
-      // signal that all data has been successfully uploaded and that it's time to show some juicy visualizations
-      this.props.dispatch({type: 'userData/allDataUploaded'});
-    }, 1234);
-    this.setState({
-      confirmLoading: true,
-    });
-  }
-
-  allDataUploaded() {
-    const {deposits, withdrawls, trades} = this.props;
-    return deposits !== null && withdrawls !== null && trades !== null;
   }
 
   render() {
@@ -106,15 +64,7 @@ class Welcome extends React.Component {
           </Button>
         </center>
 
-        <Modal
-          confirmLoading={this.state.confirmLoading}
-          onCancel={this.hideFileUploader}
-          onOk={this.fileUploaderOk}
-          visible={this.state.fileUploaderVisible}
-          width='75%'
-        >
-          <FileUploader />
-        </Modal>
+        <FileUploader visible={this.state.fileUploaderVisible} />
         <br />
 
         <Row>

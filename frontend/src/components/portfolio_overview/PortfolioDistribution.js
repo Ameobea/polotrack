@@ -14,7 +14,7 @@ class PortfolioDistribution extends React.Component {
     const {curHoldings, poloRates, cmcRates, baseCurrencySymbol, baseRate} = props;
 
     // construct a color scheme for the pie chart
-    const getColor = chroma.scale('Spectral').domain([1, Object.keys(curHoldings).length]);
+    const getColor = chroma.scale('RdYlBu').domain([0, Object.keys(curHoldings).length]);
 
     this.getBaseRate = this.getBaseRate.bind(this);
     const getBaseRate = this.getBaseRate;

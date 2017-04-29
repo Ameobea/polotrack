@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { connect } from 'dva';
-import { Alert, Col, Row } from 'antd';
+import { Alert, Col, Row, Modal } from 'antd';
+import Lockr from 'lockr';
 const Dropzone = require('react-dropzone');
 
 import gstyles from '../static/css/global.css';
@@ -37,12 +38,18 @@ class FileUploader extends React.Component {
     this.depositHistoryDropped = this.depositHistoryDropped.bind(this);
     this.withdrawlHistoryDropped = this.withdrawlHistoryDropped.bind(this);
     this.tradeHistoryDropped = this.tradeHistoryDropped.bind(this);
+    this.showFileUploader = this.showFileUploader.bind(this);
+    this.hideFileUploader = this.hideFileUploader.bind(this);
+    this.fileUploaderOk = this.fileUploaderOk.bind(this);
+    this.allDataUploaded = this.allDataUploaded.bind(this);
 
     this.state = {
       uploadError: null,
       depositsOk: false,
       withdrawlsOk: false,
       tradesOk: false,
+      confirmLoading: false,
+      fileUploaderVisible: false,
     };
   }
 
@@ -94,6 +101,49 @@ class FileUploader extends React.Component {
     }, this.fileReadError);
   }
 
+  hideFileUploader() {
+    this.setState({fileUploaderVisible: false});
+  }
+
+  showFileUploader() {
+    this.setState({fileUploaderVisible: true});
+  }
+
+  fileUploaderOk() {
+    if(!this.allDataUploaded())
+      return;
+
+    // show a spinning loading button for 1.234 seconds to make the people think we're doing super-science then hide modal
+    setTimeout(() => {
+      this.setState({
+        confirmLoading: false,
+        fileUploaderVisible: false,
+      });
+
+      // store the uploaded data in localStorage so it's persistant
+      Lockr.prefix = 'userData';
+      Lockr.set('deposits', JSON.stringify(this.props.deposits));
+      Lockr.set('withdrawls', JSON.stringify(this.props.withdrawls));
+      Lockr.set('trades', JSON.stringify(this.props.trades));
+
+      // signal that all data has been successfully uploaded and that it's time to show some juicy visualizations
+      this.props.dispatch({type: 'userData/allDataUploaded'});
+    }, 1234);
+    this.setState({
+      confirmLoading: true,
+    });
+  }
+
+  allDataUploaded() {
+    const {deposits, withdrawls, trades} = this.props;
+    return deposits !== null && withdrawls !== null && trades !== null;
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if(nextProps.visible !== this.props.visible)
+      this.setState({fileUploaderVisible: nextProps.visible});
+  }
+
   render() {
     const error = this.state.uploadError ? (
       <Alert
@@ -103,23 +153,32 @@ class FileUploader extends React.Component {
         type='error'
       />
     ) : <span />;
+
     return (
-      <div style={{fontSize: '11pt'}}>
-        {error}
-        <p>Please upload the <code>depositHistory.csv</code>, <code>depositHistory.csv</code>, and
-        {' '}<code>depositHistory.csv</code> files for your Poloniex account.</p>
+      <Modal
+        confirmLoading={this.state.confirmLoading}
+        onCancel={this.hideFileUploader}
+        onOk={this.fileUploaderOk}
+        visible={this.state.fileUploaderVisible}
+        width='75%'
+      >
+        <div style={{fontSize: '11pt'}}>
+          {error}
+          <p>Please upload the <code>depositHistory.csv</code>, <code>depositHistory.csv</code>, and
+          {' '}<code>depositHistory.csv</code> files for your Poloniex account.</p>
 
-        <p>As said before, the data contained in these files do <b>NOT</b> not contain any secret information,
-        can <b>NOT</b> be used to access or compromise your Poloniex account, and will <b>NOT</b> be stored
-        or transmitted anywhere outside of your computer.  Look in the files yourself and see!</p>
-        <br />
+          <p>As said before, the data contained in these files do <b>NOT</b> not contain any secret information,
+          can <b>NOT</b> be used to access or compromise your Poloniex account, and will <b>NOT</b> be stored
+          or transmitted anywhere outside of your computer.  Look in the files yourself and see!</p>
+          <br />
 
-        <Row>
-          <FormattedDropzone filename='depositHistory.csv' onDrop={this.depositHistoryDropped} successful={this.state.depositsOk} />
-          <FormattedDropzone filename='withdrawlHistory.csv' onDrop={this.withdrawlHistoryDropped} successful={this.state.withdrawlsOk} />
-          <FormattedDropzone filename='tradeHistory.csv' onDrop={this.tradeHistoryDropped} successful={this.state.tradesOk} />
-        </Row>
-      </div>
+          <Row>
+            <FormattedDropzone filename='depositHistory.csv' onDrop={this.depositHistoryDropped} successful={this.state.depositsOk} />
+            <FormattedDropzone filename='withdrawlHistory.csv' onDrop={this.withdrawlHistoryDropped} successful={this.state.withdrawlsOk} />
+            <FormattedDropzone filename='tradeHistory.csv' onDrop={this.tradeHistoryDropped} successful={this.state.tradesOk} />
+          </Row>
+        </div>
+      </Modal>
     );
   }
 }

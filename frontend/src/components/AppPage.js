@@ -1,7 +1,7 @@
 //! Wrapper around the pages of the application.  Renders a menu for navigation.
 
 import React from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Button } from 'antd';
 import { Link } from 'react-router';
 import Lockr from 'lockr';
 import { connect } from 'dva';
@@ -10,12 +10,14 @@ const _ = require('lodash');
 
 import gstyles from '../static/css/global.css';
 import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
+import FileUploader from './FileUploader';
 
 class IndexPage extends React.Component {
   constructor(props) {
     super(props);
 
     this.handleMenuClick = this.handleMenuClick.bind(this);
+    this.showFileUploader = this.showFileUploader.bind(this);
 
     // check localStorage for existing user data
     Lockr.prefix = 'userData';
@@ -57,11 +59,15 @@ class IndexPage extends React.Component {
       props.dispatch({type: 'globalData/coinmarketcapRatesReceived', rates: parsedRates});
     });
 
-    this.state = {selectedMenuItem: '1'};
+    this.state = {selectedMenuItem: '1', fileUploaderVisible: false};
   }
 
   handleMenuClick(e) {
     this.setState({selectedMenuItem: e.key});
+  }
+
+  showFileUploader() {
+    this.setState({fileUploaderVisible: true});
   }
 
   render() {
@@ -79,9 +85,11 @@ class IndexPage extends React.Component {
             <Menu.Item key='1'><Link to='/index'>Overview</Link></Menu.Item>
             <Menu.Item disabled={!this.props.dataUploaded} key='2'><Link to='/portfolio'>Portfolio Analysis</Link></Menu.Item>
             <Menu.Item disabled={!this.props.dataUploaded} key='3'><Link to='/trades'>Trade History</Link></Menu.Item>
+            <Menu.Item key='4'><Button onClick={this.showFileUploader} type='primary'>Upload Data</Button></Menu.Item>
           </Menu>
         </Header>
         <Content className={gstyles.content}>
+          <FileUploader visible={this.state.fileUploaderVisible} />
           {this.props.children}
         </Content>
         <Footer className={gstyles.footer}>

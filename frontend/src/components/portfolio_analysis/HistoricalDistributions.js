@@ -5,6 +5,7 @@ import { connect } from 'dva';
 import { Row, Col, Switch } from 'antd';
 const Highchart = require('react-highcharts');
 const _ = require('lodash');
+const chroma = require('chroma-js');
 
 import { batchFetchRates } from '../../utils/internalApi';
 
@@ -46,6 +47,7 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
       });
 
       // calculate portfolio value for each currency at each event and keep running totals
+      var lastDate = 0;
       _.each(_.sortBy(mergedData, ({data}) => new Date(data.date).getTime()), ({type, data}) => {
         // find the data for all currencies at the current timestamp from the historical data
         const momentData = _.filter(queryResults, histRate => {
@@ -78,8 +80,20 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
         // calculate balances using historical rates and add to the result array
         _.each(currencies, currency => {
           const histRate = _.filter(momentData, histRate => histRate.pair == `BTC/${currency}`)[0].rate;
-          histBalances[currency].push(histRate * curPortfolio[currency] * histBaseRate);
+          if(data.date !== lastDate) {
+            histBalances[currency].push([new Date(data.date).getTime(), histRate * curPortfolio[currency] * histBaseRate]);
+          } else {
+            if(histBalances[currency] && histBalances[currency].length > 0 &&
+               _.last(histBalances[currency])[0] == new Date(data.date).getTime()
+            ) {
+              _.last(histBalances[currency])[1] = histRate * curPortfolio[currency] * histBaseRate;
+            } else {
+              histBalances[currency].push([new Date(data.date).getTime(), histRate * curPortfolio[currency] * histBaseRate]);
+            }
+          }
         });
+
+        lastDate = data.date;
       });
 
       f(_.map(currencies, currency => {
@@ -101,12 +115,16 @@ class HistoricalDistributions extends React.Component {
     this.chartConfig = {
       chart: {
         type: 'area',
+        zoomType: 'x'
       },
       title: 'Historical Portfolio Distribution',
+      xAxis: {
+        type: 'datetime',
+      },
       yAxis: {
         title: {
           text: `${props.baseCurrencySymbol}${props.baseCurrency}`,
-        }
+        },
       },
       plotOptions: {
         area: {
@@ -153,11 +171,17 @@ class HistoricalDistributions extends React.Component {
     if(this.props.histBalances) {
       const {baseCurrency, baseCurrencySymbol} = this.props;
 
+      // construct a color scheme for the pie chart
+      const getColor = chroma.scale('RdYlBu').domain([0, this.props.histBalances.length]);
+
       const chartConfig = {...this.chartConfig,
+        colors: _.times(this.props.histBalances.length, index => {
+          return getColor(index).hex();
+        }),
         yAxis: {
           title: {
             text: this.state.percentageBased ? 'Percent' : `${baseCurrencySymbol}${baseCurrency}`,
-          }
+          },
         },
         plotOptions: {
           area: {...this.chartConfig.plotOptions.area,
