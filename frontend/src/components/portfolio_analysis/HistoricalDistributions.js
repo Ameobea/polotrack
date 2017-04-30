@@ -7,105 +7,6 @@ const Highchart = require('react-highcharts');
 const _ = require('lodash');
 const chroma = require('chroma-js');
 
-import { batchFetchRates } from '../../utils/internalApi';
-
-/**
- * Processes all supplied portfolio activity into the format expected by HighCharts by calculating the total
- * balance and historical value of each currency at each update.  Returns a promise that resolves to the
- * series object once the necessary historical rate requests are complete.
- */
-function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch) {
-  // merge all data together so it can be sorted by timestamp
-  const mergedData = _.concat(
-    _.map(deposits, deposit => { return {type: 'deposit', data: deposit}; }),
-    _.map(withdrawls, withdrawl => { return {type: 'withdrawl', data: withdrawl}; }),
-    _.map(trades, trade => { return {type: 'trade', data: trade}; })
-  );
-
-  // find a list of all currencies the user has ever held
-  const currencies = _.uniq(_.map(mergedData, ({type, data}) => {
-    if(type == 'trade') {
-      return data.pair.split('/')[0];
-    } else {
-      return data.currency;
-    }
-  }));
-
-  // request historical rates for each of the currencies at each of the timestamps
-  const needsFetch = _.flatten(_.map(mergedData, evt => {
-    // don't forget to fetch base currency exchange rate as well
-    return _.map([baseCurrency, ...currencies], currency => { return {pair: `BTC/${currency}`, date: evt.data.date}; });
-  }));
-
-  return new Promise((f, r) => {
-    batchFetchRates(needsFetch, poloRates, cmcRates, cachedRates, dispatch).then(queryResults => {
-      const histBalances = {};
-      const curPortfolio = {};
-      _.each(currencies, currency => {
-        histBalances[currency] = [];
-        curPortfolio[currency] = 0;
-      });
-
-      // calculate portfolio value for each currency at each event and keep running totals
-      var lastDate = 0;
-      _.each(_.sortBy(mergedData, ({data}) => new Date(data.date).getTime()), ({type, data}) => {
-        // find the data for all currencies at the current timestamp from the historical data
-        const momentData = _.filter(queryResults, histRate => {
-          return new Date(histRate.date).getTime() == new Date(data.date).getTime();
-        });
-        const histBaseRate = _.filter(momentData, histRate => histRate.pair == `BTC/${baseCurrency}`)[0].rate;
-
-        // modify the historical portfolio based on the event that occured
-        if(type == 'deposit') {
-          curPortfolio[data.currency] += data.amount;
-        } else if(type == 'withdrawl') {
-          curPortfolio[data.currency] -= data.amount;
-          if(curPortfolio[data.currency] < 0)
-            curPortfolio[data.currency] = 0;
-        } else {
-          const currencies = data.pair.split('/');
-          const neg = data.buy ? 1 : -1;
-          curPortfolio[currencies[0]] += (neg * data.amount);
-          curPortfolio[currencies[1]] -= (neg * data.cost);
-          const feedCurrency = data.buy ? currencies[0] : currencies[1];
-          const feedTotal = data.buy ? data.amount : data.cost;
-          curPortfolio[feedCurrency] -= ((data.fee / 100) * feedTotal);
-
-          if(curPortfolio[currencies[0]] < 0)
-            curPortfolio[currencies[0]] = 0;
-          if(curPortfolio[currencies[1]] < 0)
-            curPortfolio[currencies[1]] = 0;
-        }
-
-        // calculate balances using historical rates and add to the result array
-        _.each(currencies, currency => {
-          const histRate = _.filter(momentData, histRate => histRate.pair == `BTC/${currency}`)[0].rate;
-          if(data.date !== lastDate) {
-            histBalances[currency].push([new Date(data.date).getTime(), histRate * curPortfolio[currency] * histBaseRate]);
-          } else {
-            if(histBalances[currency] && histBalances[currency].length > 0 &&
-               _.last(histBalances[currency])[0] == new Date(data.date).getTime()
-            ) {
-              _.last(histBalances[currency])[1] = histRate * curPortfolio[currency] * histBaseRate;
-            } else {
-              histBalances[currency].push([new Date(data.date).getTime(), histRate * curPortfolio[currency] * histBaseRate]);
-            }
-          }
-        });
-
-        lastDate = data.date;
-      });
-
-      f(_.map(currencies, currency => {
-        return {
-          name: currency,
-          data: histBalances[currency],
-        }
-      }));
-    });
-  });
-}
-
 class HistoricalDistributions extends React.Component {
   constructor(props) {
     super(props);
@@ -126,6 +27,13 @@ class HistoricalDistributions extends React.Component {
           text: `${props.baseCurrencySymbol}${props.baseCurrency}`,
         },
       },
+      tooltip: {
+        formatter: function() {
+          return `<b>${this.series.name}</b> - ${new Date(this.x).toLocaleString()}<br>
+                  ${props.baseCurrencySymbol}${this.y.toFixed(2)} ${props.baseCurrency}<br>
+                  ${this.percentage.toFixed(1)}%`;
+        },
+      },
       plotOptions: {
         area: {
           animation: false,
@@ -141,26 +49,7 @@ class HistoricalDistributions extends React.Component {
       series: null,
     };
 
-    if(props.poloRates && props.cmcRates && !this.props.histBalances) {
-      this.calcChartData(props);
-    }
-
     this.state = {percentageBased: false};
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if(
-      (!this.props.poloRates || !this.props.cmcRates) && nextProps.poloRates && nextProps.cmcRates || !nextProps.histBalances
-    ) {
-      this.calcChartData(nextProps);
-    }
-  }
-
-  calcChartData(props) {
-    const {baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch} = props;
-    createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch).then(data => {
-      dispatch({type: 'userData/histBalancesCalculated', histBalances: data});
-    }).catch(err => console.error);
   }
 
   handleToggle() {
@@ -168,62 +57,50 @@ class HistoricalDistributions extends React.Component {
   }
 
   render() {
-    if(this.props.histBalances) {
-      const {baseCurrency, baseCurrencySymbol} = this.props;
+    const {baseCurrency, baseCurrencySymbol} = this.props;
 
-      // construct a color scheme for the pie chart
-      const getColor = chroma.scale('RdYlBu').domain([0, this.props.histBalances.length]);
+    // construct a color scheme for the pie chart
+    const getColor = chroma.scale(['black', 'red', 'green', 'blue', 'white']).domain([0, this.props.histBalances.length]);
 
-      const chartConfig = {...this.chartConfig,
-        colors: _.times(this.props.histBalances.length, index => {
-          return getColor(index).hex();
-        }),
-        yAxis: {
-          title: {
-            text: this.state.percentageBased ? 'Percent' : `${baseCurrencySymbol}${baseCurrency}`,
-          },
+    const chartConfig = {...this.chartConfig,
+      colors: _.times(this.props.histBalances.length, index => {
+        return getColor(index).hex();
+      }),
+      yAxis: {
+        title: {
+          text: this.state.percentageBased ? 'Percent' : `${baseCurrencySymbol}${baseCurrency}`,
         },
-        plotOptions: {
-          area: {...this.chartConfig.plotOptions.area,
-            stacking: this.state.percentageBased ? 'percent' : 'normal',
-          },
+      },
+      plotOptions: {
+        area: {...this.chartConfig.plotOptions.area,
+          stacking: this.state.percentageBased ? 'percent' : 'normal',
         },
-        series: this.props.histBalances,
-      };
+      },
+      series: this.props.histBalances,
+    };
 
-      return (
-        <div>
-          <Row>
-            <Col span={12}>
-              <center>
-                Percentage-Based <Switch checked={this.state.percentageBased} onChange={this.handleToggle} />
-              </center>
-            </Col>
-          </Row>
-          <Row>
-            <Col span={24}>
-              <Highchart config={chartConfig} isPureConfig />
-            </Col>
-          </Row>
-        </div>
-      );
-    } else {
-      return <span>Loading...  (This may take a long time)</span>;
-    }
+    return (
+      <div>
+        <Row>
+          <Col span={12}>
+            <center><p><i>Click and drag to zoom</i></p></center>
+          </Col>
+          <Col span={12}>
+            <center>
+              Percentage-Based <Switch checked={this.state.percentageBased} onChange={this.handleToggle} />
+            </center>
+          </Col>
+        </Row>
+        <Highchart config={chartConfig} isPureConfig />
+      </div>
+    );
   }
 }
 
 function mapProps(state) {
   return {
-    deposits: state.userData.deposits,
-    withdrawls: state.userData.withdrawls,
-    trades: state.userData.trades,
-    baseRate: state.globalData.baseRate,
     baseCurrency: state.globalData.baseCurrency,
     baseCurrencySymbol: state.globalData.baseCurrencySymbol,
-    poloRates: state.globalData.poloRates,
-    cmcRates: state.globalData.coinmarketcapRates,
-    cachedRates: state.globalData.cachedRates,
     histBalances: state.userData.histBalances,
   };
 }

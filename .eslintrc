@@ -12,6 +12,7 @@
     "react/no-set-state": 0,
     "react/display-name": 0,
     "react/jsx-max-props-per-line": [1, {"maximum": 3, "when": "multiline"}],
+    "react/require-default-props": 0,
     "linebreak-style": [2, "unix"],
     "semi": [2, "always"],
     "comma-dangle": [2, "only-multiline"],

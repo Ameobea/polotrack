@@ -9,6 +9,7 @@ export default {
     trades: null,
     dataUploaded: false,
     histBalances: null,
+    histPLs: null,
   },
 
   reducers: {
@@ -47,5 +48,13 @@ export default {
     histBalancesCalculated(state, {histBalances}) {
       return {...state, histBalances};
     },
+
+    /**
+     * Triggered after historical profit/loss values are calculated.  Stores calculated values so they don't have to be
+     * re-calculated every time the component is reconstructed.
+     */
+    histPLsCalculated(state, {histPLs}) {
+      return {...state, histPLs};
+    }
   },
 }
