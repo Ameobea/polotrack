@@ -12,6 +12,12 @@ import Welcome from '../components/Welcome';
 import PortfolioOverview from '../components/portfolio_overview/PortfolioOverview';
 
 class IndexPage extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.props.dispatch({type: 'globalData/setSelectedMenuItem', item: '1'});
+  }
+
   render() {
     if(!this.props.dataUploaded) {
       return <Welcome />;

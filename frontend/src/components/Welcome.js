@@ -16,7 +16,7 @@ class Welcome extends React.Component {
   }
 
   showFileUploader() {
-    this.setState({fileUploaderVisible: true});
+    this.props.dispatch({type: 'globalData/setDataUploadModalVisibility', visible: true});
   }
 
   render() {
@@ -64,7 +64,7 @@ class Welcome extends React.Component {
           </Button>
         </center>
 
-        <FileUploader visible={this.state.fileUploaderVisible} />
+        <FileUploader />
         <br />
 
         <Row>

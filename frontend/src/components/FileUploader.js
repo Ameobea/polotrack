@@ -49,7 +49,6 @@ class FileUploader extends React.Component {
       withdrawlsOk: false,
       tradesOk: false,
       confirmLoading: false,
-      fileUploaderVisible: false,
     };
   }
 
@@ -102,22 +101,25 @@ class FileUploader extends React.Component {
   }
 
   hideFileUploader() {
-    this.setState({fileUploaderVisible: false});
+    this.props.dispatch({type: 'globalData/setDataUploadModalVisibility', visible: false});
   }
 
   showFileUploader() {
-    this.setState({fileUploaderVisible: true});
+    this.props.dispatch({type: 'globalData/setDataUploadModalVisibility', visible: true});
   }
 
   fileUploaderOk() {
-    if(!this.allDataUploaded())
+    if(!this.allDataUploaded()) {
+      this.setState({uploadError: 'You must select all all the required files!'});
       return;
+    }
+
+    this.setState({uploadError: null});
 
     // show a spinning loading button for 1.234 seconds to make the people think we're doing super-science then hide modal
     setTimeout(() => {
       this.setState({
         confirmLoading: false,
-        fileUploaderVisible: false,
       });
 
       // store the uploaded data in localStorage so it's persistant
@@ -128,8 +130,9 @@ class FileUploader extends React.Component {
 
       // signal that all data has been successfully uploaded and that it's time to show some juicy visualizations
       this.props.dispatch({type: 'userData/allDataUploaded'});
+      this.hideFileUploader();
       // since this is real user data, set the `isDemo` flag to false
-      dispatch({type: 'globalData/setDemoFlag', isDemo: false});
+      this.props.dispatch({type: 'globalData/setDemoFlag', isDemo: false});
     }, 1234);
     this.setState({
       confirmLoading: true,
@@ -137,13 +140,8 @@ class FileUploader extends React.Component {
   }
 
   allDataUploaded() {
-    const {deposits, withdrawls, trades} = this.props;
-    return deposits !== null && withdrawls !== null && trades !== null;
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if(nextProps.visible !== this.props.visible)
-      this.setState({fileUploaderVisible: nextProps.visible});
+    const {depositsOk, withdrawlsOk, tradesOk, isDemo} = this.state;
+    return depositsOk && withdrawlsOk && tradesOk;
   }
 
   render() {
@@ -161,12 +159,12 @@ class FileUploader extends React.Component {
         confirmLoading={this.state.confirmLoading}
         onCancel={this.hideFileUploader}
         onOk={this.fileUploaderOk}
-        visible={this.state.fileUploaderVisible}
+        visible={this.props.visible}
         width='75%'
       >
         <div style={{fontSize: '11pt'}}>
-          {error}
-          <p>Please upload the <code>depositHistory.csv</code>, <code>depositHistory.csv</code>, and
+          <center>{error}</center>
+          <p>Please provide the <code>depositHistory.csv</code>, <code>depositHistory.csv</code>, and
           {' '}<code>depositHistory.csv</code> files for your Poloniex account.</p>
 
           <p>As said before, the data contained in these files do <b>NOT</b> not contain any secret information,
@@ -190,6 +188,7 @@ function mapProps(state) {
     deposits: state.userData.deposits,
     withdrawls: state.userData.withdrawls,
     trades: state.userData.trades,
+    visible: state.globalData.dataUploadModalVisible,
   };
 }
 

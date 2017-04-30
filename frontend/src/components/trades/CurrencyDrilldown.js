@@ -121,7 +121,7 @@ function renderChart(
       svg.selectAll('g.x.axis').call(xAxis);
       svg.selectAll('g.y.axis').call(yAxis);
 
-      f(chartElem);
+      f(chartElem.toReact());
     });
   });
 }
@@ -176,7 +176,7 @@ class CurrencyDrilldown extends React.Component {
   render() {
     let content;
     if(this.state.chartElem) {
-      content = this.state.chartElem.toReact();
+      content = this.state.chartElem;
     } else {
       content = <span>Loading...</span>;
     }

@@ -12,6 +12,11 @@ import { batchFetchRates } from '../utils/internalApi';
 import HistoricalDistributions from '../components/portfolio_analysis/HistoricalDistributions';
 import HistoricalPL from '../components/portfolio_analysis/HistoricalPL';
 
+// function for mapping objects with a date attribute to convert the date into a timestamp
+function mapDate(obj) {
+  return {...obj, date: new Date(obj.date).getTime()};
+}
+
 /**
  * Processes all supplied portfolio activity into the format expected by HighCharts by calculating the total
  * balance and historical value of each currency at each update.  Returns a promise that resolves to the
@@ -20,9 +25,9 @@ import HistoricalPL from '../components/portfolio_analysis/HistoricalPL';
 function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmcRates, cachedRates, dispatch) {
   // merge all data together so it can be sorted by timestamp
   const mergedData = _.concat(
-    _.map(deposits, deposit => { return {type: 'deposit', data: deposit}; }),
-    _.map(withdrawls, withdrawl => { return {type: 'withdrawl', data: withdrawl}; }),
-    _.map(trades, trade => { return {type: 'trade', data: trade}; })
+    _.map(deposits, deposit => { return {type: 'deposit', data: mapDate(deposit)}; }),
+    _.map(withdrawls, withdrawl => { return {type: 'withdrawl', data: mapDate(withdrawl)}; }),
+    _.map(trades, trade => { return {type: 'trade', data: mapDate(trade)}; })
   );
 
   // find a list of all currencies the user has ever held
@@ -42,6 +47,7 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
 
   return new Promise((f, r) => {
     batchFetchRates(needsFetch, poloRates, cmcRates, cachedRates, dispatch).then(queryResults => {
+      queryResults = _.map(queryResults, histRate => { return {...histRate, date: new Date(histRate.date).getTime()}; });
       const histBalances = {};
       const histPLs = {};
       const curPortfolio = {};
@@ -61,7 +67,7 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
       _.each(_.sortBy(mergedData, ({data}) => new Date(data.date).getTime()), ({type, data}) => {
         // find the data for all currencies at the current timestamp from the historical data
         const momentData = _.filter(queryResults, histRate => {
-          return new Date(histRate.date).getTime() == new Date(data.date).getTime();
+          return histRate.date == data.date;
         });
         const histBaseRate = _.filter(momentData, histRate => histRate.pair == `BTC/${baseCurrency}`)[0].rate;
 
@@ -153,6 +159,8 @@ class PortfolioAnalysis extends React.Component {
     super(props);
 
     this.calcChartData = this.calcChartData.bind(this);
+
+    this.props.dispatch({type: 'globalData/setSelectedMenuItem', item: '2'});
 
     if(props.poloRates && props.cmcRates && !this.props.histBalances) {
       // delay to give the page a time to at least display "Loading" before locking up CPU

@@ -23,7 +23,7 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
     _.each(requests, req => {
       let isCached = false;
       _.each(cachedRates[req.pair], cachedRate => {
-        if(new Date(cachedRate.date).getTime() == new Date(req.date).getTime()) {
+        if(cachedRate.date == new Date(req.date).getTime()) {
           cachedResults.push(cachedRate);
           isCached = true;
         }

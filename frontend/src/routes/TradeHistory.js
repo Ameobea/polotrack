@@ -140,6 +140,8 @@ class TradeHistory extends React.Component {
     this.handleTradeUnhover = this.handleTradeUnhover.bind(this);
     this.handleTradeClick = this.handleTradeClick.bind(this);
 
+    this.props.dispatch({type: 'globalData/setSelectedMenuItem', item: '3'});
+
     // parse the provided trades by filtering only those for the selected currency and combining trades
     // that were made during the same second and averaging the price they were made at.
     const parsed = parseCurrencies(props.trades, this.props.currency);

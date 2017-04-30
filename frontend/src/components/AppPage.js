@@ -17,7 +17,6 @@ class IndexPage extends React.Component {
   constructor(props) {
     super(props);
 
-    this.handleMenuClick = this.handleMenuClick.bind(this);
     this.showFileUploader = this.showFileUploader.bind(this);
 
     // check localStorage for existing user data
@@ -59,16 +58,10 @@ class IndexPage extends React.Component {
       });
       props.dispatch({type: 'globalData/coinmarketcapRatesReceived', rates: parsedRates});
     });
-
-    this.state = {selectedMenuItem: '1', fileUploaderVisible: false};
-  }
-
-  handleMenuClick(e) {
-    this.setState({selectedMenuItem: e.key});
   }
 
   showFileUploader() {
-    this.setState({fileUploaderVisible: true});
+    this.props.dispatch({type: 'globalData/setDataUploadModalVisibility', visible: true});
   }
 
   render() {
@@ -79,9 +72,8 @@ class IndexPage extends React.Component {
         <Header className={gstyles.header}>
           <Menu
             className={gstyles.bigText}
-            defaultSelectedKeys={[this.state.selectedMenuItem]}
+            selectedKeys={this.props.selectedMenuItem}
             mode='horizontal'
-            onClick={this.handleMenuClick}
             style={{ lineHeight: '64px' }}
             theme='dark'
           >
@@ -93,7 +85,7 @@ class IndexPage extends React.Component {
         </Header>
         <Content className={gstyles.content}>
           {banner}
-          <FileUploader visible={this.state.fileUploaderVisible} />
+          <FileUploader />
           {this.props.children}
         </Content>
         <Footer className={gstyles.footer}>
@@ -116,6 +108,7 @@ function mapProps(state) {
     baseCurrency: state.globalData.baseCurrency,
     dataUploaded: state.userData.dataUploaded,
     isDemo: state.globalData.isDemo,
+    selectedMenuItem: state.globalData.selectedMenuItem,
   };
 }
 

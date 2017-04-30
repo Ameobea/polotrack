@@ -15,6 +15,8 @@ export default {
     coinmarketcapRates: null,
     cachedRates: {},
     isDemo: false,
+    dataUploadModalVisible: false,
+    selectedMenuItem: ['1'],
   },
 
   reducers: {
@@ -82,7 +84,7 @@ export default {
         if(!newCachedRates[histRate.pair]) {
           newCachedRates[histRate.pair] = [histRate];
         } else {
-          newCachedRates[histRate.pair].push(histRate);
+          newCachedRates[histRate.pair].push({...histRate, date: new Date(histRate.date).getTime()});
         }
       });
 
@@ -94,6 +96,14 @@ export default {
      */
     setDemoFlag(state, {isDemo}) {
       return {...state, isDemo: isDemo};
+    },
+
+    setDataUploadModalVisibility(state, {visible}) {
+      return {...state, dataUploadModalVisible: visible};
+    },
+
+    setSelectedMenuItem(state, {item}) {
+      return {...state, selectedMenuItem: [item]};
     },
   },
 };
