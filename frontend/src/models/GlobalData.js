@@ -105,5 +105,9 @@ export default {
     setSelectedMenuItem(state, {item}) {
       return {...state, selectedMenuItem: [item]};
     },
+
+    setDemo(state, {isDemo}) {
+      return {...state, isDemo};
+    },
   },
 };

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use rocket::response::{self, Response, Responder};
 use rocket::http::Method;
 
+#[allow(dead_code)]
 pub struct CORS<R> {
     responder: R,
     allow_origin: &'static str,
@@ -37,11 +38,6 @@ impl<'r, R: Responder<'r>> CORS<R> {
 
     pub fn any(responder: R) -> CORS<R> {
         CORS::origin(responder, "*")
-    }
-
-    pub fn credentials(mut self, value: bool) -> CORS<R> {
-        self.allow_credentials = value;
-        self
     }
 
     pub fn methods(mut self, methods: Vec<Method>) -> CORS<R> {

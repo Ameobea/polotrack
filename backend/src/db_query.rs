@@ -8,7 +8,7 @@ use r2d2::{ Config, Pool };
 use r2d2_diesel_mysql::ConnectionManager;
 
 // use schema;
-use secret::DB_CREDENTIALS;
+use secret::DB_URL;
 use super::{debug, MYSQL_DATE_FORMAT};
 
 /// Helper type holding the rate and difference from the current timestamp of a historical rate query
@@ -40,7 +40,7 @@ const BASE_CURRENCIES: &[&'static str] = &["USD", "EUR", "JPY", "GBP", "CAD", "N
 
 pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {
     let config = Config::default();
-    let manager = ConnectionManager::<MysqlConnection>::new(format!("{}", DB_CREDENTIALS));
+    let manager = ConnectionManager::<MysqlConnection>::new(DB_URL);
     Pool::new(config, manager).expect("Failed to create pool.")
 }
 

@@ -4,6 +4,7 @@ import React from 'react';
 import { connect } from 'dva';
 const fetch = require('node-fetch');
 import { push } from 'react-router-redux';
+import Lockr from 'lockr';
 
 class ExampleLoader extends React.Component {
   constructor(props) {
@@ -32,6 +33,13 @@ class ExampleLoader extends React.Component {
   componentWillReceiveProps(nextProps) {
     const {deposits, withdrawls, trades, dispatch} = nextProps;
     if(deposits && withdrawls && trades) {
+      // store the uploaded data in localStorage so it's persistant
+      Lockr.prefix = 'userData';
+      Lockr.set('deposits', JSON.stringify(nextProps.deposits));
+      Lockr.set('withdrawls', JSON.stringify(nextProps.withdrawls));
+      Lockr.set('trades', JSON.stringify(nextProps.trades));
+      Lockr.set('demo', JSON.stringify(true));
+
       // redirect to the overview page
       dispatch({type: 'userData/allDataUploaded'});
       dispatch({type: 'globalData/setDemoFlag', isDemo: true});

@@ -12,6 +12,7 @@ import gstyles from '../static/css/global.css';
 import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
 import FileUploader from './FileUploader';
 import DemoBanner from './DemoBanner';
+import FeedbackButton from './FeedbackButton';
 
 class IndexPage extends React.Component {
   constructor(props) {
@@ -27,6 +28,7 @@ class IndexPage extends React.Component {
       props.dispatch({type: 'userData/depositHistoryUploaded', deposits: JSON.parse(deposits)});
       props.dispatch({type: 'userData/withdrawlHistoryUploaded', withdrawls: JSON.parse(Lockr.get('withdrawls'))});
       props.dispatch({type: 'userData/tradeHistoryUploaded', trades: JSON.parse(Lockr.get('trades'))});
+      props.dispatch({type: 'globalData/setDemo', isDemo: JSON.parse(Lockr.get('demo'))});
       props.dispatch({type: 'userData/allDataUploaded'});
     }
 
@@ -83,6 +85,7 @@ class IndexPage extends React.Component {
             <Menu.Item key='4'><Button onClick={this.showFileUploader} type='primary'>Upload Data</Button></Menu.Item>
           </Menu>
         </Header>
+        <FeedbackButton />
         <Content className={gstyles.content}>
           {banner}
           <FileUploader />

@@ -37,7 +37,7 @@ function calcCurrentHoldings(deposits, withdrawls, trades) {
     totals[split[1]] += (trade.buy ? -1 : 1) * trade.cost;
     const feedCurrency = trade.buy ? split[0] : split[1];
     const feedTotal = trade.buy ? trade.amount : trade.cost;
-    totals[feedCurrency] -= ((trade.fee / 100) * feedTotal);
+    totals[feedCurrency] -= +((trade.fee / 100) * feedTotal).toFixed(8);
   });
 
   // round each of the values to 8 decimals of precision

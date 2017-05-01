@@ -5,7 +5,7 @@ const fetch = require('node-fetch');
 
 import { getBtcValue } from './exchangeRates';
 
-const INTERNAL_API_URL = 'http://localhost:7878';
+import { INTERNAL_API_URL } from '../conf';
 
 /**
  * Given an array of {pair, date} objects, queries the internal API to fetch the exchange rate at as close a

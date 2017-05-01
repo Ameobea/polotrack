@@ -1,6 +1,6 @@
 //! Poloniex API backend.  See README.md for more information.
 
-#![feature(plugin)]
+#![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
 
 extern crate chrono;
@@ -35,6 +35,7 @@ mod routes;
 mod secret;
 mod db_query;
 use db_query::HistRateQueryResult;
+mod feedback;
 
 pub const MYSQL_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
@@ -85,6 +86,8 @@ fn main() {
             routes::hist_rate_cors_preflight,
             routes::get_batch_hist_rates,
             routes::hist_batch_rate_cors_preflight,
+            routes::feedback_cors_preflight,
+            routes::submit_feedback,
         ])
         .manage(DbPool(db_query::create_db_pool()))
         .manage(RateCache::new())

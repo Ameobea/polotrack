@@ -5,9 +5,8 @@ use std::io::Read;
 use chrono::NaiveDateTime;
 use rayon::prelude::*;
 use rocket::{Data, Request, State};
-use rocket::http::Method;
+use rocket::http::{Method, Status};
 use rocket::data::{self, FromData};
-use rocket::http::Status;
 use rocket::Outcome::*;
 use rocket_contrib::JSON;
 use serde_json;
@@ -15,6 +14,7 @@ use serde_json;
 use super::{debug, DbPool, RateCache, MYSQL_DATE_FORMAT};
 use db_query::get_rate;
 use cors::*;
+use feedback::deliver_feedback;
 
 #[derive(Serialize)]
 pub struct RateResponse {
@@ -35,6 +35,17 @@ pub struct RateRequest {
 pub struct RawRateRequest {
     pub date: String,
     pub pair: String,
+}
+
+#[derive(Deserialize)]
+pub struct Feedback {
+    pub email: String,
+    pub message: String,
+}
+
+#[derive(Serialize)]
+pub struct FeedbackResponse {
+    pub success: bool,
 }
 
 impl RawRateRequest {
@@ -95,6 +106,15 @@ fn hist_rate_cors_preflight(pair: &str, timestamp_string: &str) -> PreflightCORS
 #[route(OPTIONS, "/batch_rate")]
 #[allow(unused_variables)]
 fn hist_batch_rate_cors_preflight() -> PreflightCORS {
+    CORS::preflight("*")
+        .methods(vec![Method::Options, Method::Post])
+        .headers(vec!["Content-Type"])
+}
+
+/// Implement CORS for `OPTION` queries on the feedback submission API
+#[route(OPTIONS, "/feedback")]
+#[allow(unused_variables)]
+fn feedback_cors_preflight() -> PreflightCORS {
     CORS::preflight("*")
         .methods(vec![Method::Options, Method::Post])
         .headers(vec!["Content-Type"])
@@ -190,4 +210,16 @@ pub fn get_batch_hist_rates(
         .collect();
 
     CORS::any(JSON(results))
+}
+
+/// Exposes an endpoint that interfaces with AmeoTrack to email me feedback that's sent using the feedback modal.
+#[post("/feedback", data="<feedback>")]
+fn submit_feedback(feedback: JSON<Feedback>) -> CORS<JSON<FeedbackResponse>> {
+    CORS::any(JSON(match deliver_feedback(&feedback.0.email, &feedback.0.message) {
+        Ok(()) => FeedbackResponse{success: true},
+        Err(err) => {
+            println!("Error while delivering feedback to AmeoTrack: {}", err);
+            FeedbackResponse{success: false}
+        },
+    }))
 }

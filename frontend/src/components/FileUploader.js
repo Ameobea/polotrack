@@ -127,6 +127,7 @@ class FileUploader extends React.Component {
       Lockr.set('deposits', JSON.stringify(this.props.deposits));
       Lockr.set('withdrawls', JSON.stringify(this.props.withdrawls));
       Lockr.set('trades', JSON.stringify(this.props.trades));
+      Lockr.set('demo', JSON.stringify(false));
 
       // signal that all data has been successfully uploaded and that it's time to show some juicy visualizations
       this.props.dispatch({type: 'userData/allDataUploaded'});
