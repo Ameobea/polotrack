@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { connect } from 'dva';
-const fetch = require('node-fetch');
 import { push } from 'react-router-redux';
 import Lockr from 'lockr';
 

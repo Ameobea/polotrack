@@ -1,10 +1,8 @@
 //! Interface to the internal data API used to retrieve data from the database.
 
 const _ = require('lodash');
-const fetch = require('node-fetch');
 
 import { getBtcValue } from './exchangeRates';
-
 import { INTERNAL_API_URL } from '../conf';
 
 /**

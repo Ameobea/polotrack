@@ -16,12 +16,12 @@
     "dva-loading": "^0.2.1",
     "lockr": "0.8.4",
     "lodash": "4.17.4",
-    "node-fetch": "1.6.3",
     "react": "^15.4.0",
     "react-faux-dom": "git+https://github.com/Ameobea/react-faux-dom.git#5f20b0f",
     "react-highcharts": "11.5.0",
     "react-dom": "^15.4.0",
-    "react-dropzone": "3.12.4"
+    "react-dropzone": "3.12.4",
+    "whatwg-fetch": "2.0.3"
   },
   "devDependencies": {
     "babel-eslint": "^7.1.1",

@@ -1,7 +1,5 @@
 //! Functions for calculating exchange rates and retrieving live exchange rate data from external sources
 
-const fetch = require('node-fetch');
-
 const TICKER_URL = 'https://blockchain.info/ticker?cors=true';
 const POLO_API_URL = 'https://poloniex.com/public';
 const COINMARKETCAP_URL = 'https://ameo.link/cmcapi/v1/ticker/';
