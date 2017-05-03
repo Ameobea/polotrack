@@ -176,12 +176,24 @@ function doDownload(pair, done) {
       console.log(`Downloading chunk from ${curStartTimestamp} : ${curEndTimestamp}`);
       fetchTradeHistory(pair, curStartTimestamp, curEndTimestamp).then((data) => {
         try {
-          let sortedData = _.sortBy(data, trade => trade.tradeID);
+          let _sortedData = _.sortBy(data, trade => trade.tradeID);
+          // remove values from the data so that all points are at least 48 seconds apart
+          const sortedData = [];
+          if(data.length > 0) {
+            _sortedData[0].date = new Date(_sortedData[0].date + ' GMT');
+            sortedData.push(_sortedData[0]);
+          }
+          for(var i=1; i<data.length; i++) {
+            _sortedData[i].date = new Date(_sortedData[i].date + ' GMT');
+            if(_sortedData[i].date.getTime() - _.last(sortedData).date.getTime() >= 48000)
+              sortedData.push(_sortedData[i]);
+          }
+
           // process the trades into the database
           if(data.length > 0) {
             let query = `INSERT IGNORE INTO trades_${pair} (id, trade_time, rate) VALUES `;
-            query += _.map(data, trade => {
-              let timestamp = new Date(trade.date + ' GMT').toISOString().slice(0, 19).replace('T', ' ');
+            query += _.map(sortedData, trade => {
+              let timestamp = trade.date.toISOString().slice(0, 19).replace('T', ' ');
               // insert the trade into the database
               return `(${trade.globalTradeID}, "${timestamp}", ${+trade.rate})`;
             }).join(', ');
@@ -196,7 +208,7 @@ function doDownload(pair, done) {
 
           if(data.length === 50000) {
             // if it was more than 50,000 trades, download what's missing before going on
-            curEndTimestamp = Math.round(new Date(sortedData[0].date + ' GMT').getTime() / 1000) - 1;
+            curEndTimestamp = Math.round(sortedData[0].date.getTime() / 1000) - 1;
             // if this is the first attempt to download an oversized segment, update `maxEndTimestamp`
             if(!areBacktracking){
               console.log('We weren\'t backtracking but now are due to hitting a max-sized result');
@@ -206,7 +218,7 @@ function doDownload(pair, done) {
           } else {
             // if we're backtracking and hit this code, it means we've finished the oversized segment and can move on.
             if(areBacktracking) {
-              console.log(`We were backtracking but hit a result with size ${data.length}.`);
+              console.log(`We were backtracking but hit a result with size ${sortedData.length}.`);
               console.log(`Setting start timestamp to after previous max end timestamp: ${maxEndTimestamp}`);
               curStartTimestamp = maxEndTimestamp + 1;
               areBacktracking = false;
