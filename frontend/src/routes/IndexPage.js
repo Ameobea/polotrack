@@ -34,7 +34,7 @@ class IndexPage extends React.Component {
 function mapProps(state) {
   return {
     dataUploaded: state.userData.dataUploaded,
-  }
+  };
 }
 
 export default connect(mapProps)(IndexPage);

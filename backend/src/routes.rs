@@ -16,7 +16,7 @@ use db_query::get_rate;
 use cors::*;
 use feedback::deliver_feedback;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct RateResponse {
     pub pair: String,
     pub rate: Option<f32>,
@@ -96,7 +96,7 @@ impl FromData for BatchRateRequest {
 /// Implement CORS for `OPTION` queries on the historical rate API
 #[route(OPTIONS, "/rate/<pair>/<timestamp_string>")]
 #[allow(unused_variables)]
-fn hist_rate_cors_preflight(pair: &str, timestamp_string: &str) -> PreflightCORS {
+fn hist_rate_cors_preflight(pair: String, timestamp_string: String) -> PreflightCORS {
     CORS::preflight("*")
         .methods(vec![Method::Options, Method::Post])
         .headers(vec!["Content-Type"])

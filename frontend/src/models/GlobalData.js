@@ -84,7 +84,7 @@ export default {
         if(!newCachedRates[histRate.pair]) {
           newCachedRates[histRate.pair] = [histRate];
         } else {
-          newCachedRates[histRate.pair].push({...histRate, date: new Date(histRate.date).getTime()});
+          newCachedRates[histRate.pair].push({...histRate, date: new Date(`${histRate.date}Z`).getTime()});
         }
       });
 

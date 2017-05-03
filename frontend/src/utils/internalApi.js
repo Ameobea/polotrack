@@ -65,7 +65,7 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
         }
         const realRate = pair.includes('USDT') ? 1 / rate : rate;
 
-        return {pair, rate: realRate, date: new Date(date), no_data, cached};
+        return {pair, rate: realRate, date: new Date(`${date}Z`), no_data, cached};
       });
 
       f(_.concat(mappedResults, cachedResults));
