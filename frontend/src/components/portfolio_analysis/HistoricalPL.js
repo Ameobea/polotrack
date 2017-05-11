@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { connect } from 'dva';
+import PropTypes from 'prop-types';
 const Highchart = require('react-highcharts');
 
 import { histBalancesShape } from '../../utils/propTypeDefs';
@@ -73,8 +74,8 @@ class HistoricalPL extends React.Component {
 }
 
 HistoricalPL.propTypes = {
-  baseCurrency: React.PropTypes.string.isRequired,
-  baseCurrencySymbol: React.PropTypes.string.isRequired,
+  baseCurrency: PropTypes.string.isRequired,
+  baseCurrencySymbol: PropTypes.string.isRequired,
   histPLs: histBalancesShape,
 };
 

@@ -1,53 +1,53 @@
 //! Prop type defintions or use with `propTypes`
 
-import React from 'react';
+import PropTypes from 'prop-types';
 
 const customTypes = {
-  depositShape: React.PropTypes.shape({
-    date: React.PropTypes.oneOfType([
-      React.PropTypes.instanceOf(Date),
-      React.PropTypes.string,
-      React.PropTypes.number
+  depositShape: PropTypes.shape({
+    date: PropTypes.oneOfType([
+      PropTypes.instanceOf(Date),
+      PropTypes.string,
+      PropTypes.number
     ]),
-    currency: React.PropTypes.string.isRequired,
-    amount: React.PropTypes.number.isRequired,
+    currency: PropTypes.string.isRequired,
+    amount: PropTypes.number.isRequired,
   }),
-  withdrawlShape: React.PropTypes.shape({
-    date: React.PropTypes.oneOfType([
-      React.PropTypes.instanceOf(Date),
-      React.PropTypes.string,
-      React.PropTypes.number
+  withdrawlShape: PropTypes.shape({
+    date: PropTypes.oneOfType([
+      PropTypes.instanceOf(Date),
+      PropTypes.string,
+      PropTypes.number
     ]),
-    currency: React.PropTypes.string.isRequired,
-    amount: React.PropTypes.number.isRequired,
+    currency: PropTypes.string.isRequired,
+    amount: PropTypes.number.isRequired,
   }),
-  tradeShape: React.PropTypes.shape({
-    date: React.PropTypes.oneOfType([
-      React.PropTypes.instanceOf(Date),
-      React.PropTypes.string,
-      React.PropTypes.number
+  tradeShape: PropTypes.shape({
+    date: PropTypes.oneOfType([
+      PropTypes.instanceOf(Date),
+      PropTypes.string,
+      PropTypes.number
     ]),
-    pair: React.PropTypes.string.isRequired,
-    amount: React.PropTypes.number.isRequired,
-    buy: React.PropTypes.bool.isRequired,
-    price: React.PropTypes.number.isRequired,
-    cost: React.PropTypes.number.isRequired,
-    fee: React.PropTypes.number.isRequired,
+    pair: PropTypes.string.isRequired,
+    amount: PropTypes.number.isRequired,
+    buy: PropTypes.bool.isRequired,
+    price: PropTypes.number.isRequired,
+    cost: PropTypes.number.isRequired,
+    fee: PropTypes.number.isRequired,
   }),
-  histBalancesShape: React.PropTypes.arrayOf(
-    React.PropTypes.shape({
-      name: React.PropTypes.string.isRequired,
-      data: React.PropTypes.arrayOf(React.PropTypes.arrayOf(React.PropTypes.number)).isRequired,
+  histBalancesShape: PropTypes.arrayOf(
+    PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      data: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
     })
   ),
-  poloRatesShape: React.PropTypes.objectOf(React.PropTypes.shape({
-    last: React.PropTypes.string.isRequired,
+  poloRatesShape: PropTypes.objectOf(PropTypes.shape({
+    last: PropTypes.string.isRequired,
   })),
-  cmcRatesShape: React.PropTypes.objectOf(React.PropTypes.shape({
-    name: React.PropTypes.string.isRequired,
-    price_btc: React.PropTypes.string,
-    price_usd: React.PropTypes.string,
-    symbol: React.PropTypes.string.isRequired,
+  cmcRatesShape: PropTypes.objectOf(PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    price_btc: PropTypes.string,
+    price_usd: PropTypes.string,
+    symbol: PropTypes.string.isRequired,
   })),
 };
 

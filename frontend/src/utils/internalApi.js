@@ -33,6 +33,9 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
 
     // map the dates to SQL format so they can be parsed by the API
     needsFetch = _.map(needsFetch, ({pair, date}) => {
+      if(pair.includes('USDT')) {
+        pair = 'USDT/BTC';
+      }
       return {
         date: new Date(date).toISOString().substring(0, 19).replace('T', ' '),
         pair: pair,

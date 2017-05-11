@@ -84,7 +84,7 @@ function downloadCurrencies(currencies) {
     if(currencies[i] != 'USDT'){
       pair = `BTC_${currencies[i]}`;
     } else {
-      pair = 'BTC_USDT';
+      pair = 'USDT_BTC';
     }
     console.log(`Starting download for pair ${pair}...`);
 

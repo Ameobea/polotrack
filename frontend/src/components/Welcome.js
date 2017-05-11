@@ -3,6 +3,7 @@
 import React from 'react';
 import { connect } from 'dva';
 import { Alert, Button, Row, Col } from 'antd';
+import { push } from 'react-router-redux';
 import FileUploader from '../components/FileUploader';
 import gstyles from '../static/css/global.css';
 
@@ -11,12 +12,17 @@ class Welcome extends React.Component {
     super(props);
 
     this.showFileUploader = this.showFileUploader.bind(this);
+    this.showDemoData = this.showDemoData.bind(this);
 
     this.state = {fileUploaderVisible: false};
   }
 
   showFileUploader() {
     this.props.dispatch({type: 'globalData/setDataUploadModalVisibility', visible: true});
+  }
+
+  showDemoData() {
+    this.props.dispatch(push('/demo'));
   }
 
   render() {
@@ -57,10 +63,17 @@ class Welcome extends React.Component {
         <center>
           <Button
             onClick={this.showFileUploader}
-            style={{marginTop: '18px', marginBottom: '10px'}}
+            style={{marginTop: '18px', marginBottom: '10px', marginRight: '10px'}}
             type='primary'
           >
             <span className={gstyles.bigText}>Upload Your Account Data</span>
+          </Button>
+          <Button
+            onClick={this.showDemoData}
+            style={{marginTop: '18px', marginBottom: '10px'}}
+            type='primary'
+          >
+            <span className={gstyles.bigText}>View Demo Data</span>
           </Button>
         </center>
 

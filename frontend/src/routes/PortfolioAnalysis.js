@@ -33,7 +33,11 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
   // find a list of all currencies the user has ever held
   const currencies = _.uniq(_.map(mergedData, ({type, data}) => {
     if(type == 'trade') {
-      return data.pair.split('/')[0];
+      if(!data.pair.includes('USDT')) {
+        return data.pair.split('/')[0];
+      } else {
+        return 'USDT';
+      }
     } else {
       return data.currency;
     }
