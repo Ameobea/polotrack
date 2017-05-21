@@ -107,7 +107,10 @@ function createSeries(baseCurrency, deposits, withdrawls, trades, poloRates, cmc
           curPortfolio[gainedCurrency] += (gainedAmount - fee);
           curPortfolio[lostCurrency] -= lostAmount;
 
-          const gainedRate = _.filter(momentData, histRate => histRate.pair == `BTC/${gainedCurrency}`)[0].rate;
+          const gainedRateArr = _.filter(momentData, histRate => histRate.pair == `BTC/${gainedCurrency}`);
+          if(gainedRateArr.length === 0)
+            console.log(`${gainedCurrency} ${JSON.stringify(momentData)}`);
+          const gainedRate = gainedRateArr[0].rate;
           const lostRate = _.filter(momentData, histRate => histRate.pair == `BTC/${lostCurrency}`)[0].rate;
           // console.log(`Gained ${gainedAmount} ${gainedCurrency} at rate ${gainedRate} total value ${(gainedAmount - fee) * gainedRate * histBaseRate}`)
           // console.log(`Lost ${lostAmount} ${lostCurrency} at rate ${lostRate} total value ${lostAmount * lostRate * histBaseRate}`)
@@ -172,13 +175,15 @@ class PortfolioAnalysis extends React.Component {
         this.calcChartData(props);
       }, 100);
     }
+
+    this.state = {calculatingChartData: false};
   }
 
   componentWillReceiveProps(nextProps) {
-    if(
-      (!this.props.poloRates || !this.props.cmcRates) && nextProps.poloRates && nextProps.cmcRates || !nextProps.histBalances
-    ) {
+    if(!this.state.calculatingChartData) {
+      console.log('Calculating chart data...');
       this.calcChartData(nextProps);
+      this.setState({calculatingChartData: true});
     }
   }
 

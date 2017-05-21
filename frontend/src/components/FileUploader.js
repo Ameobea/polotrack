@@ -132,8 +132,12 @@ class FileUploader extends React.Component {
       // signal that all data has been successfully uploaded and that it's time to show some juicy visualizations
       this.props.dispatch({type: 'userData/allDataUploaded'});
       this.hideFileUploader();
+
       // since this is real user data, set the `isDemo` flag to false
       this.props.dispatch({type: 'globalData/setDemoFlag', isDemo: false});
+
+      // hard-refresh the page since components are wired to not watch for changes to static user data
+      window.location.reload();
     }, 1234);
     this.setState({
       confirmLoading: true,

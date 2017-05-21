@@ -36,6 +36,7 @@ class IndexPage extends React.Component {
     getBtcUsdRate(props.baseCurrency).then(rate => {
       props.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
     });
+    console.log('initializing automatic rate fetches...');
     setInterval(() => {
       getBtcUsdRate(props.baseCurrency).then(rate => {
         props.dispatch({type: 'globalData/baseRateUpdated', rate: rate});

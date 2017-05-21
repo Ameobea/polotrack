@@ -81,6 +81,8 @@ export default {
     batchHistoricalRatesReceived(state, {histRates}) {
       const newCachedRates = {...state.cachedRates};
       _.each(histRates, histRate => {
+        if(histRate.no_data)
+          console.log(`No data for ${JSON.stringify(histRate)}`);
         if(!newCachedRates[histRate.pair]) {
           newCachedRates[histRate.pair] = [histRate];
         } else {

@@ -43,6 +43,9 @@ class ExampleLoader extends React.Component {
       dispatch({type: 'userData/allDataUploaded'});
       dispatch({type: 'globalData/setDemoFlag', isDemo: true});
       dispatch(push('/index'));
+
+      // and then hard-refresh the page to force any components to reload from scratch
+      window.location.reload();
     }
   }
 

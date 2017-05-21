@@ -11,6 +11,7 @@ import { INTERNAL_API_URL } from '../conf';
  * after they've all completed in the form `[{pair, rate, date} ...]`.
  */
 function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
+  // console.log(cachedRates);
   if(!cachedRates || !dispatch)
     debugger;
 
@@ -34,7 +35,7 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
     // map the dates to SQL format so they can be parsed by the API
     needsFetch = _.map(needsFetch, ({pair, date}) => {
       if(pair.includes('USDT')) {
-        pair = 'USDT/BTC';
+        pair = 'BTC/USDT';
       }
       return {
         date: new Date(date).toISOString().substring(0, 19).replace('T', ' '),
@@ -66,9 +67,8 @@ function batchFetchRates(requests, poloRates, cmcRates, cachedRates, dispatch) {
           // if no historical data for the currency, then try to get the static rate from Poloniex or coinmarketcap
           rate = getBtcValue(pair.split('/')[1], 1, poloRates, cmcRates);
         }
-        const realRate = pair.includes('USDT') ? 1 / rate : rate;
 
-        return {pair, rate: realRate, date: new Date(`${date}Z`), no_data, cached};
+        return {pair, rate, date: new Date(`${date}Z`), no_data, cached};
       });
 
       f(_.concat(mappedResults, cachedResults));

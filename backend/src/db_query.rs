@@ -23,7 +23,7 @@ const CURRENCIES: &[&'static str] = &[
     "CLAM","CNL","CNMT","CNOTE","COMM","CON","CORG","CRYPT","CURE","CYC","DAO","DASH","DCR","DGB","DICE","DIEM","DIME",
     "DIS","DNS","DOGE","DRKC","DRM","DSH","DVK","EAC","EBT","ECC","EFL","EMC2","EMO","ENC","ETC","ETH","eTOK","EXE","EXP",
     "FAC","FCN","FCT","FIBRE","FLAP","FLDC","FLO","FLT","FOX","FRAC","FRK","FRQ","FVZ","FZ","FZN","GAME","GAP","GDN",
-    "GEMZ","GEO","GIAR","GLB","GML","GNS","GNT","GOLD","GPC","GPUC","GRC","GRCX","GRS","GUE","H2O","HIRO","HOT","HUC",
+    "GEMZ","GEO","GIAR","GLB","GML","GNO","GNS","GNT","GOLD","GPC","GPUC","GRC","GRCX","GRS","GUE","H2O","HIRO","HOT","HUC",
     "HUGE","HVC","HYP","HZ","IFC","INDEX","IOC","ITC","IXC","JLH","JPC","JUG","KDC","KEY","LBC","LC","LCL","LEAF","LGC",
     "LOL","LOVE","LQD","LSK","LTBC","LTC","LTCX","MAID","MAST","MAX","MCN","MEC","METH","MIL","MIN","MINT","MMC","MMNXT",
     "MMXIV","MNTA","MON","MRC","MRS","MTS","MUN","MYR","MZC","N5X","NAS","NAUT","NAV","NBT","NEOS","NL","NMC","NOBL",
@@ -47,7 +47,7 @@ pub fn create_db_pool() -> Pool<ConnectionManager<MysqlConnection>> {
 /// Given a pair and a timestamp, returns the exchange rate for that pair to BTC as close as possible to the provided timestamp.
 /// Expects a pair in the format "BTC/ETH".
 pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) -> Result<Option<HistRateQueryResult>, String> {
-    let split = pair.split('/').collect::<Vec<&str>>();
+    let mut split = pair.split('/').collect::<Vec<&str>>();
     if split.len() < 2 {
         return Err(format!("Invalid currency pair supplied: {}!", pair))
     }
@@ -55,6 +55,10 @@ pub fn get_rate(pair: &str, timestamp: NaiveDateTime, conn: &MysqlConnection) ->
     if split[0] == "BTC" && split[1] == "BTC" {
         Ok(Some(HistRateQueryResult(1f32, 1000000)))
     } else if CURRENCIES.contains(&split[0]) && CURRENCIES.contains(&split[1]) {
+        if split[0] == "USDT" || split[1] == "USDT" {
+            split[0] = "BTC";
+            split[1] = "USDT";
+        }
         // base currencies have min precision of 1 obs every 24 hours; much more precise for Poloniex trade data
         let search_radius = if BASE_CURRENCIES.contains(&split[1]) { 13 } else { 4 };
         // have to construct raw SQL here since Diesel doesn't deal well with dynamic queries and writing macros is horrible
