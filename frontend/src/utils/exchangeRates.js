@@ -8,7 +8,7 @@ const COINMARKETCAP_URL = 'https://ameo.link/cmcapi/v1/ticker/';
  * Fetches the current exchange rate between BTC and the supplied base currency from the blockchain.info API.
  * Returns a promise that resolves to the supplied value when the request is complete.
  */
-function getBtcUsdRate(baseCurrency) {
+function getBaseRate(baseCurrency) {
   return fetch(TICKER_URL).then(res => {
     return res.json();
   }).then(body => {
@@ -117,4 +117,4 @@ function getBtcValue(currency, amount, poloRates, coinmarketcapRates) {
   }
 }
 
-export { getBtcUsdRate, listBaseCurrencies, getPoloRates, getBtcValue, getCoinmarketcapRates, fetchPoloCandlestickData };
+export { getBaseRate, listBaseCurrencies, getPoloRates, getBtcValue, getCoinmarketcapRates, fetchPoloCandlestickData };

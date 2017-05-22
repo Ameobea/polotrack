@@ -8,7 +8,9 @@ export default {
 
   state: {
     baseCurrency: 'USD',
+    baseCurrencies: ['USD', 'EUR', 'JPY', 'GBP', 'CAD', 'NZD'],
     baseCurrencySymbol: '$',
+    baseCurrencySymbols: ['$', '€', '¥', '£', '$', '$'],
     baseExchangeRate: null,
     poloRates: {}, // the current exchange rates vs. BTC for all available currencies
     poloSeq: 0,

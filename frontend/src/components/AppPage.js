@@ -9,10 +9,11 @@ const { Header, Content, Footer } = Layout;
 const _ = require('lodash');
 
 import gstyles from '../static/css/global.css';
-import { getBtcUsdRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
+import { getBaseRate, getPoloRates, getCoinmarketcapRates } from '../utils/exchangeRates';
 import FileUploader from './FileUploader';
 import DemoBanner from './DemoBanner';
 import FeedbackButton from './FeedbackButton';
+import BaseCurrencySelector from './BaseCurrencySelector';
 
 class IndexPage extends React.Component {
   constructor(props) {
@@ -22,6 +23,14 @@ class IndexPage extends React.Component {
 
     // check localStorage for existing user data
     Lockr.prefix = 'userData';
+
+    const currencyPrefs = Lockr.get('baseCurrency');
+    let baseCurrency = props.baseCurrency;
+    if(currencyPrefs) {
+      const {currency, symbol} = JSON.parse(currencyPrefs);
+      props.dispatch({type: 'globalData/baseCurrencyChanged', newBaseCurrency: currency, newBaseCurrencySymbol: symbol});
+      baseCurrency = currency;
+    }
 
     const deposits = Lockr.get('deposits');
     if(deposits) {
@@ -33,12 +42,11 @@ class IndexPage extends React.Component {
     }
 
     // set up the periodic update of exchange rates from the blockchain.info API
-    getBtcUsdRate(props.baseCurrency).then(rate => {
+    getBaseRate(baseCurrency).then(rate => {
       props.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
     });
-    console.log('initializing automatic rate fetches...');
-    setInterval(() => {
-      getBtcUsdRate(props.baseCurrency).then(rate => {
+    const baseRateInterval = setInterval(() => {
+      getBaseRate(baseCurrency).then(rate => {
         props.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
       });
     }, 16161);
@@ -61,6 +69,24 @@ class IndexPage extends React.Component {
       });
       props.dispatch({type: 'globalData/coinmarketcapRatesReceived', rates: parsedRates});
     });
+
+    this.state = {baseRateInterval};
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if(this.props.baseCurrency !== nextProps.baseCurrency) {
+      // cancel the current base currency interval loop and start a new one for the new currency
+      clearInterval(this.state.baseRateInterval);
+      getBaseRate(nextProps.baseCurrency).then(rate => {
+        nextProps.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
+      });
+      const baseRateInterval = setInterval(() => {
+        getBaseRate(nextProps.baseCurrency).then(rate => {
+          nextProps.dispatch({type: 'globalData/baseRateUpdated', rate: rate});
+        });
+      }, 16161);
+      this.setState({baseRateInterval});
+    }
   }
 
   showFileUploader() {
@@ -84,6 +110,7 @@ class IndexPage extends React.Component {
             <Menu.Item disabled={!this.props.dataUploaded} key='2'><Link to='/portfolio'>Portfolio Analysis</Link></Menu.Item>
             <Menu.Item disabled={!this.props.dataUploaded} key='3'><Link to='/trades'>Trade History</Link></Menu.Item>
             <Menu.Item key='4'><Button onClick={this.showFileUploader} type='primary'>Upload Data</Button></Menu.Item>
+            <Menu.Item key='5'><BaseCurrencySelector /></Menu.Item>
           </Menu>
         </Header>
         <FeedbackButton />
