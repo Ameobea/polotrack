@@ -9,6 +9,7 @@ const _ = require('lodash');
 const priv = require('./conf');
 
 const SECONDS_IN_A_YEAR = 31556926;
+const CHUNK_DELAY = 3012; // ms between downloading historical trades for pairs
 
 const connection = mysql.createConnection({
   host     : priv.mysqlHost,
@@ -19,12 +20,18 @@ const connection = mysql.createConnection({
 connection.connect();
 
 // fetch the Currencies page from the Poloniex API and parse it from JSON
-fetch('https://poloniex.com/public?command=returnCurrencies')
+fetch('https://poloniex.com/public?command=returnCurrencies', {method: 'GET', timeout: 15000})
   .then(res => {
     return res.json();
+  }).catch(err => {
+    console.err('Error while attempting to fetch Poloniex currency data: ');
+    console.log(err);
   }).then(body => {
     // just use the list of all currencies so that we can download their BTC exchange history
     downloadCurrencies(Object.keys(body));
+  }).catch(err => {
+    console.err('Error while attempting to parse Poloniex currency data from JSON: ');
+    console.log(err);
   });
 
 // fetch historical BTC prices and insert them into the database
@@ -48,9 +55,12 @@ _.each(baseCurrencies, (currency, index) => {
   setTimeout(() => {
     _.each(['all', 'hour'], period => {
       console.log(`Downloading BTC_${currency} data from coinbase with period ${period}...`);
-      fetch(`https://api.coinbase.com/v2/prices/BTC-${currency}/historic?period=${period}`)
+      fetch(`https://api.coinbase.com/v2/prices/BTC-${currency}/historic?period=${period}`, {method: 'GET', timeout: 15000})
         .then(res => res.json())
-        .then(body => {
+        .catch(err => {
+          console.err('Error while attempting to fetch coinbase data: ');
+          console.log(err);
+        }).then(body => {
           let query = `INSERT IGNORE INTO trades_BTC_${currency} (trade_time, rate) VALUES `;
           query += _.map(body.data.prices, ({price, time}) => {
             return `('${new Date(time).toISOString().substring(0, 19).replace('T', ' ')}', ${+price})`;
@@ -156,7 +166,7 @@ function doDownload(pair, done) {
       curStartTimestamp = 1262304000;
     }
 
-    let endTimestamp = (new Date().getTime() / 1000) + 86400; // end at our current timestamp plus 24 hours
+    const endTimestamp = (new Date().getTime() / 1000) + 86400; // end at our current timestamp plus 24 hours
     // true if we're currently working our way back in time in a large segment
     let areBacktracking = false;
 
@@ -176,7 +186,7 @@ function doDownload(pair, done) {
       console.log(`Downloading chunk from ${curStartTimestamp} : ${curEndTimestamp}`);
       fetchTradeHistory(pair, curStartTimestamp, curEndTimestamp).then((data) => {
         try {
-          let _sortedData = _.sortBy(data, trade => trade.tradeID);
+          const _sortedData = _.sortBy(data, trade => trade.tradeID);
           // remove values from the data so that all points are at least 48 seconds apart
           const sortedData = [];
           if(data.length > 0) {
@@ -193,7 +203,7 @@ function doDownload(pair, done) {
           if(data.length > 0) {
             let query = `INSERT IGNORE INTO trades_${pair} (id, trade_time, rate) VALUES `;
             query += _.map(sortedData, trade => {
-              let timestamp = trade.date.toISOString().slice(0, 19).replace('T', ' ');
+              const timestamp = trade.date.toISOString().slice(0, 19).replace('T', ' ');
               // insert the trade into the database
               return `(${trade.globalTradeID}, "${timestamp}", ${+trade.rate})`;
             }).join(', ');
@@ -233,7 +243,11 @@ function doDownload(pair, done) {
               curEndTimestamp = curStartTimestamp + (SECONDS_IN_A_YEAR * .99);
             } else if(curEndTimestamp >= endTimestamp || curStartTimestamp >= endTimestamp) {
               console.log('Download complete!');
-              return done(); // indicate that we're finished download all data for this pair and to download the next one
+              return setTimeout(() => {
+                // After waiting a few seconds to avoid overloading the Poloniex API and tripping the rate limit,
+                // indicate that we're finished download all data for this pair and to download the next one
+                done();
+              }, CHUNK_DELAY);
             } else {
               console.log('Less than a year remaining after current download and end; queueing up final block...');
               curEndTimestamp = endTimestamp;
@@ -249,8 +263,22 @@ function doDownload(pair, done) {
         }
       }).catch(error => {
         // if no data is available for the pair, ignore it and move on.
-        if(error == 'Invalid currency pair.')
+        if(error == 'Invalid currency pair.') {
+          setTimeout(() => {
+            done();
+          }, CHUNK_DELAY);
+        } else if(error.includes('Too many requests')) {
+          console.log('Exceeded Poloniex rate limit; sleeping for 180 seconds...');
+          setTimeout(() => {
+            // we lose this one currency this update but oh well we'll get it next update.
+            done();
+          }, 180 * 1000);
+        } else {
+          console.error(`Unhandled error while downloading historical trade data for pair ${pair}:`);
+          console.log(error);
+          console.log('Ignoring and moving on...');
           done();
+        }
       });
     }
 
@@ -270,13 +298,24 @@ function doDownload(pair, done) {
 function fetchTradeHistory(pair, startTimestamp, endTimestamp) {
   return new Promise((fulfill, reject) => {
     const history_url = `https://poloniex.com/public?command=returnTradeHistory&currencyPair=${pair}&start=${startTimestamp}&end=${endTimestamp}`;
-    fetch(history_url)
+    fetch(history_url, {method: 'GET', timeout: 15000})
       .then(res => {
         return res.json();
+      }).catch(err => {
+        console.err('Error while attempting to fetch Poloniex trade history data: ');
+        console.log(err);
+        console.log('Fetching again in ~10 seconds...');
+        setTimeout(() => {
+          fetchTradeHistory(pair, startTimestamp, endTimestamp).then(res => {
+            fulfill(res);
+          });
+        }, 10169);
       }).then(body => {
-        if(body.error)
+        if(body.error) {
           reject(body.error);
-        fulfill(body);
+        } else {
+          fulfill(body);
+        }
       }).catch(err => {
         // There was an error parsing the JSON for this segment; try to fetch it again.
         console.log(`Error fetching segment; received error ${err}; fetching again in ~10 seconds...`);
