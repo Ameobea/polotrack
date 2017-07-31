@@ -4,7 +4,7 @@ use std::io::Read;
 
 use chrono::NaiveDateTime;
 use rayon::prelude::*;
-use rocket::{Data, Request, State};
+use rocket::{Data, Request, Response, State};
 use rocket::http::Status;
 use rocket::data::{self, FromData};
 use rocket::Outcome::*;
@@ -142,6 +142,40 @@ fn retrieve_hist_rate(db_pool: &DbPool, rate_cache: &RateCache, pair: String, ti
             date: timestamp,
         },
     }
+}
+
+/// Implement CORS for `OPTION` queries on the historical rate API
+
+#[route(OPTIONS, "/rate/<pair>/<timestamp_string>")]
+#[allow(unused_variables)]
+fn rate_options_handler<'a>(pair: String, timestamp_string: String) -> Response<'a> {
+    Response::build()
+        .raw_header("Access-Control-Allow-Origin", "http://host.tld")
+        .raw_header("Access-Control-Allow-Methods", "OPTIONS, POST")
+        .raw_header("Access-Control-Allow-Headers", "Content-Type")
+        .finalize()
+}
+
+/// Implement CORS for `OPTION` queries on the historical batch rate API
+#[route(OPTIONS, "/batch_rate")]
+#[allow(unused_variables)]
+fn batch_rate_options_handler<'a>() -> Response<'a> {
+    Response::build()
+        .raw_header("Access-Control-Allow-Origin", "http://host.tld")
+        .raw_header("Access-Control-Allow-Methods", "OPTIONS, POST")
+        .raw_header("Access-Control-Allow-Headers", "Content-Type")
+        .finalize()
+}
+
+/// Implement CORS for `OPTION` queries on the feedback submission API
+#[route(OPTIONS, "/feedback")]
+#[allow(unused_variables)]
+fn feedback_options_handler<'a>() -> Response<'a> {
+    Response::build()
+        .raw_header("Access-Control-Allow-Origin", "http://host.tld")
+        .raw_header("Access-Control-Allow-Methods", "OPTIONS, POST")
+        .raw_header("Access-Control-Allow-Headers", "Content-Type")
+        .finalize()
 }
 
 /// Exposes the historical rate API.  Attempts to find the nearest exchange rate for the given currency pair and timestamp

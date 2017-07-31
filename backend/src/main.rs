@@ -83,6 +83,9 @@ fn main() {
     // initialize the Rocket webserver
     rocket::ignite()
         .mount("/", routes![
+            routes::rate_options_handler,
+            routes::batch_rate_options_handler,
+            routes::feedback_options_handler,
             routes::get_hist_rate,
             routes::get_batch_hist_rates,
             routes::submit_feedback,
