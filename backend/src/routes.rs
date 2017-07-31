@@ -5,15 +5,14 @@ use std::io::Read;
 use chrono::NaiveDateTime;
 use rayon::prelude::*;
 use rocket::{Data, Request, State};
-use rocket::http::{Method, Status};
+use rocket::http::Status;
 use rocket::data::{self, FromData};
 use rocket::Outcome::*;
-use rocket_contrib::JSON;
+use rocket_contrib::Json;
 use serde_json;
 
 use super::{debug, DbPool, RateCache, MYSQL_DATE_FORMAT};
 use db_query::get_rate;
-use cors::*;
 use feedback::deliver_feedback;
 
 #[derive(Serialize, Deserialize)]
@@ -93,33 +92,6 @@ impl FromData for BatchRateRequest {
     }
 }
 
-/// Implement CORS for `OPTION` queries on the historical rate API
-#[route(OPTIONS, "/rate/<pair>/<timestamp_string>")]
-#[allow(unused_variables)]
-fn hist_rate_cors_preflight(pair: String, timestamp_string: String) -> PreflightCORS {
-    CORS::preflight("*")
-        .methods(vec![Method::Options, Method::Post])
-        .headers(vec!["Content-Type"])
-}
-
-/// Implement CORS for `OPTION` queries on the historical batch rate API
-#[route(OPTIONS, "/batch_rate")]
-#[allow(unused_variables)]
-fn hist_batch_rate_cors_preflight() -> PreflightCORS {
-    CORS::preflight("*")
-        .methods(vec![Method::Options, Method::Post])
-        .headers(vec!["Content-Type"])
-}
-
-/// Implement CORS for `OPTION` queries on the feedback submission API
-#[route(OPTIONS, "/feedback")]
-#[allow(unused_variables)]
-fn feedback_cors_preflight() -> PreflightCORS {
-    CORS::preflight("*")
-        .methods(vec![Method::Options, Method::Post])
-        .headers(vec!["Content-Type"])
-}
-
 /// Fetches the value for a historical exchange rate.  First attempts to read it from the cache.  If not in the cache,
 /// makes a query to the database and inserts the response into the cache.
 fn retrieve_hist_rate(db_pool: &DbPool, rate_cache: &RateCache, pair: String, timestamp: NaiveDateTime) -> RateResponse {
@@ -177,7 +149,7 @@ fn retrieve_hist_rate(db_pool: &DbPool, rate_cache: &RateCache, pair: String, ti
 #[get("/rate/<pair>/<timestamp_string>")]
 pub fn get_hist_rate(
     db_pool: State<DbPool>, rate_cache_state: State<RateCache>, pair: String, timestamp_string: String
-) -> CORS<Result<JSON<RateResponse>, String>> {
+) -> Result<Json<RateResponse>, String> {
     let rate_cache = rate_cache_state.inner();
 
     let timestamp_res = NaiveDateTime::parse_from_str(&timestamp_string, MYSQL_DATE_FORMAT)
@@ -185,12 +157,12 @@ pub fn get_hist_rate(
     let timestamp = match timestamp_res {
         Ok(timestamp) => timestamp,
         Err(err) => {
-            return CORS::any(Err(err));
+            return Err(err);
         },
     };
 
     let hist_rate = retrieve_hist_rate(&db_pool, rate_cache, pair, timestamp);
-    CORS::any(Ok(JSON(hist_rate)))
+    Ok(Json(hist_rate))
 }
 
 /// Exposes the historical rate API with batch retrieval capabilities.  Allows for multiple pair/date
@@ -198,7 +170,7 @@ pub fn get_hist_rate(
 #[post("/batch_rate", format = "application/json", data="<requests>")]
 pub fn get_batch_hist_rates(
     db_pool: State<DbPool>, rate_cache_state: State<RateCache>, requests: BatchRateRequest
-) -> CORS<JSON<Vec<RateResponse>>> {
+) -> Json<Vec<RateResponse>> {
     let rate_cache = rate_cache_state.inner();
 
     // process each of the rate requests one by one
@@ -209,17 +181,17 @@ pub fn get_batch_hist_rates(
         })
         .collect();
 
-    CORS::any(JSON(results))
+    Json(results)
 }
 
 /// Exposes an endpoint that interfaces with AmeoTrack to email me feedback that's sent using the feedback modal.
 #[post("/feedback", data="<feedback>")]
-fn submit_feedback(feedback: JSON<Feedback>) -> CORS<JSON<FeedbackResponse>> {
-    CORS::any(JSON(match deliver_feedback(&feedback.0.email, &feedback.0.message) {
+fn submit_feedback(feedback: Json<Feedback>) -> Json<FeedbackResponse> {
+    Json(match deliver_feedback(&feedback.0.email, &feedback.0.message) {
         Ok(()) => FeedbackResponse{success: true},
         Err(err) => {
             println!("Error while delivering feedback to AmeoTrack: {}", err);
             FeedbackResponse{success: false}
         },
-    }))
+    })
 }

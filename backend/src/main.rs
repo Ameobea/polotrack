@@ -30,6 +30,7 @@ use r2d2::{ Pool, PooledConnection };
 use r2d2_diesel_mysql::ConnectionManager;
 
 mod cors;
+use cors::CORS;
 // mod schema;
 mod routes;
 mod secret;
@@ -83,13 +84,11 @@ fn main() {
     rocket::ignite()
         .mount("/", routes![
             routes::get_hist_rate,
-            routes::hist_rate_cors_preflight,
             routes::get_batch_hist_rates,
-            routes::hist_batch_rate_cors_preflight,
-            routes::feedback_cors_preflight,
             routes::submit_feedback,
         ])
         .manage(DbPool(db_query::create_db_pool()))
         .manage(RateCache::new())
+        .attach(CORS())
         .launch();
 }
