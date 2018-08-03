@@ -1,6 +1,6 @@
 //! Poloniex API backend.  See README.md for more information.
 
-#![feature(plugin, custom_derive)]
+#![feature(plugin, custom_derive, decl_macro)]
 #![plugin(rocket_codegen)]
 
 extern crate chrono;
