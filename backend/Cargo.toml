@@ -7,7 +7,7 @@ description = "Backend and API provider for the Poloniex portfolio analysis dash
 [dependencies]
 chrono = { version = "0.4.0",  features = ["serde"] }
 
-diesel = { version = "0.15.2", features = ["mysql", "large-tables", "chrono"] }
+diesel = { version = "1.4.6", features = ["mysql", "large-tables", "chrono"] }
 diesel_codegen = { version = "0.15.0", features = ["mysql"] }
 
 hyper = "0.10.*"
